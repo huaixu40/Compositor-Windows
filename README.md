@@ -1,109 +1,108 @@
-# Compositor
+# Compositor Windows
 
-Adobe Photoshop costs too much and tools like GIMP don’t feel familiar enough for me to stay in flow. That’s why I built Compositor.
+**基于 [Robbie Tilton](https://github.com/robbietilton) 的 [Compositor](https://github.com/robbietilton/Compositor) 改写的非官方 Windows 图像编辑器。**
 
-The goal was to create a full-featured image editor that is completely free and open source. I used to use Photoshop for compositing and post-processing, so Compositor is built around that workflow - with the tools needed to create a pixel-perfect final image.
+> 原项目由 Robbie Tilton 开发，原始版权属于 **Wonder Assembly LLC**，采用 MIT 许可证。本仓库保留原版源码、Git 历史及版权声明；Windows 客户端是由 [huaixu40](https://github.com/huaixu40) 维护的独立改写，使用 Electron / Canvas 实现。**本项目不是原作者官方发布，也未获得原作者背书。**
+>
+> An unofficial Windows adaptation of [Compositor by Robbie Tilton](https://github.com/robbietilton/Compositor). The original macOS source and MIT copyright are preserved. The Windows client is a separate Electron/Canvas implementation, not an official release or a feature-complete port.
 
-Because it’s open source, you can download the Xcode project and add, remove, or modify any feature to fit your workflow.
+[下载 Windows 预览版](https://github.com/huaixu40/Compositor-Windows/releases/tag/windows-v0.1.0) · [Windows 详细说明](windows/README-WINDOWS.md) · [原版 README](README.upstream.md) · [许可证](LICENSE)
 
-## Installation
+![Compositor Windows 编辑器预览](docs/windows/preview.png)
 
-### Download
-Get Compositor from [robbietilton.com/compositor](https://robbietilton.com/compositor), or download the latest release directly from [GitHub Releases](https://github.com/robbietilton/Compositor/releases/latest).
+## 这是什么
 
-### Homebrew
+Compositor 原版是基于 SwiftUI、AppKit、CoreGraphics / CoreImage / Metal 的 macOS 图像编辑器，不能直接在 Windows 上编译运行。本仓库保留原版工程，并在 `windows/` 中新增 Windows 客户端，优先实现 **PSD 图层编辑和常用修图工作流**。
 
-```sh
-brew install --cask robbietilton-compositor
+当前版本为 **0.1.0 Preview**。它已能在 Windows 上独立启动、打开图片、编辑图层并保存，但还没有完整复现原版或 Photoshop 的全部功能。以下功能与限制描述的是 Windows 版，不应与原版功能列表混用。
+
+## 下载与启动
+
+1. 打开 [Windows v0.1.0 预发布页面](https://github.com/huaixu40/Compositor-Windows/releases/tag/windows-v0.1.0)。
+2. 下载 `Compositor-Windows-0.1.0-win-x64.zip`，解压到可写目录。
+3. 双击解压目录中的 `Compositor-Windows.exe`。
+
+便携包自带运行时，无需安装 Node.js、Python 或 Xcode，正常编辑不需要联网。**请保留整个解压目录，不要只复制 exe。** 当前提供 Windows x64 构建；已在开发者的 Windows 电脑验证，尚未覆盖不同设备的兼容性测试。预览版未做代码签名。
+
+## 已实现的功能
+
+| 范围 | 当前功能 |
+|---|---|
+| 文件 | 打开 8-bit RGB PSD、PNG、JPEG、WebP；导出分层 PSD、PNG、JPEG |
+| 图层 | PSD 图层组、顺序、复制、删除、重命名、显隐、透明度、常见混合模式 |
+| 变换 | 移动、缩放、旋转、水平翻转 |
+| 蒙版 | 栅格蒙版导入/导出，黑白画笔编辑，启用/禁用 |
+| 修图工具 | 画笔、橡皮、仿制图章、矩形选区、填充、吸管 |
+| 可回改滤镜 | 曝光/对比度、色阶、RGB 曲线、色相/饱和度、色彩平衡、模糊、锐化、黑白 |
+| 工作项目 | `.cwin` 保存图层原始像素、蒙版、变换及可编辑滤镜 |
+| 编辑保护 | 撤销/重做、未保存提醒、PSD 转换报告、源文件覆盖保护 |
+
+建议先保存 `.cwin` 工作项目，再导出 PSD 副本。PSD 导出会把本客户端的滤镜和变换烘焙到各个像素图层；原始滤镜参数保留在 `.cwin` 中。
+
+## PSD 兼容性：请先了解
+
+- **支持读写**：普通像素图层、层级、偏移、显隐、透明度、常见混合模式、栅格蒙版。
+- **保留参数、近似预览**：PSD 的 Levels、Curves、Exposure、Invert 调整图层；当前没有这些导入调整层的参数编辑面板。
+- **转换为缓存像素**：文字、智能对象、矢量内容，不保留原来的可编辑语义。
+- **提示后转换或丢弃**：复杂图层效果、剪贴关系、其他调整图层、Blend If 和部分特殊遮罩/画板。需要保留文件存储的原始观感时，可选择 `Open merged preview` 以单层打开。
+- **暂不支持**：CMYK、16/32-bit PSD、PSB、原版 `.comp` 项目、完整 ICC 色彩管理。
+
+本版不会静默承诺完整兼容 Photoshop；已识别的兼容性问题会在导入时展示。**未完成 Adobe Photoshop 实机互操作验收，也不保证与 Photoshop 逐像素一致。** 请保留源文件，并优先用副本验证自己的工作流。
+
+## 暂未移植
+
+原版 GPU 渲染管线、Camera Raw、内容识别修复、自动抠图、可编辑文字、钢笔路径、自由扭曲和完整高级图层效果等尚未实现。大图及多层实时处理可能卡顿。详细容量限制和操作说明见 [Windows 使用说明](windows/README-WINDOWS.md)。
+
+## 从源码运行
+
+需要 Windows x64 和 Node.js 22.12 或更高版本。
+
+```powershell
+git clone https://github.com/huaixu40/Compositor-Windows.git
+cd Compositor-Windows/windows
+npm.cmd ci
+npm.cmd start
 ```
 
-## Features
+构建和验证：
 
-### Layers
-- Layers and folders, with opacity and Photoshop's full set of blend modes in its order — a folder's opacity dims everything inside it
-- Layer masks: paint, fill, invert, blur and feather them anywhere on the canvas, past the layer's own pixels; link or unlink them to transform a mask on its own
-- Clipping masks and folder masks
-- Adjustment layers: Hue/Saturation, Levels, Curves, Exposure, Gradient Map, Grain, Black & White, Color Balance, Invert, Gaussian Blur, Motion Blur and Noise
-- Layer effects: Stroke, Drop Shadow, Color Overlay, Inner Shadow, Outer Glow and Inner Glow, rendered on the GPU and editable at any time
-- Merge Down, Merge Layers and Merge Group (⌘E)
-- Duplicate, rename inline, reorder and nest by drag and drop; Option-drag to duplicate; a right-click menu in the Layers panel
-- Copy and paste whole layers and folders (⌘C/⌘V with no selection), within a project or between projects, or drag them between projects
+```powershell
+npm.cmd test
+npm.cmd run package
+```
 
-### Transform
-- Non-destructive move, scale, rotate and flip — images keep their full resolution however small you make them
-- Free distort (⌘-drag a handle), with Shift to lock to an axis
-- Transform several layers, or a whole folder, together
-- Snapping to canvas and layer edges and centers, with guides
-- Exact values for position, size, scale and angle, stepped with the arrow keys
-- Flip Layer and Flip Canvas, horizontal and vertical
+- `npm test` 在真实 Electron renderer 中执行测试，结果和界面截图写入 `windows/output/`。
+- `npm run package` 生成 `windows/release/Compositor-Windows/` 和 `windows/Start-Compositor.cmd`。
+- 打包器拒绝覆盖已有同名发布目录，重新打包前请先归档旧目录。
+- 二进制与依赖目录不进入 Git 源码历史，便携包通过 GitHub Releases 提供。
 
-### Selections
-- Rectangle and Ellipse Marquee, Freehand and Polygonal Lasso, and the Magic tool — Wand selects by color, Object traces whatever you click (Tab switches)
-- Select Subject, and Expand, Contract and Feather on any selection
-- Add to and subtract from selections, move the outline, or move and duplicate the pixels inside
-- Load a layer's pixels or a mask as a selection
-- Content-Aware Fill, which can also extend an image past its edges
+## 验证记录
 
-### Painting and retouching
-- Brush with size, hardness, opacity and smoothing, in Paint or Erase mode (B and E), and Shift for straight lines
-- Spot Healing Brush (content-aware)
-- Clone Stamp, aligned or not, sampling one layer or all of them
-- Blur tool, on pixels or masks
-- Gradient tool and Shape tool (rectangles, rounded rectangles, ellipses and lines), which stay editable rather than being rasterized
-- Type tool (T): inline multiline editing in draggable, resizable paragraph boxes; font, size, color, alignment and spacing in the tool header; transform text and use it as a clipping mask
-- Eyedropper and a full color picker
+2026-10-16，源码版和已打包的 Windows exe 均通过 **14 项测试**，覆盖 PSD 往返、图层组/蒙版/偏移、调整参数保留、两份公开 PSD 样本、项目保存、滤镜、撤销/重做、工具交互和实际 IPC 文件读写/源文件覆盖保护。
 
-### Adjustments and filters
-- Camera Raw filter: light, color, curves, color mixer, color grading, detail, optics and geometry, in a panel beside the canvas; each section resets to its defaults from its header
-- Levels (with Auto), Curves, Hue/Saturation, Exposure, Gradient Map, Grain, Black & White, Color Balance and Invert
-- Gaussian Blur and Motion Blur that spread past a layer's edges
-- Add Noise, Vignette, Bloom / Glow, Dither, Scanlines, Tonal Contrast, Lens Correction and Remove Background
-- Live previews, limited to the selection when there is one
-- Last Filter (⌃⌘F) runs the last filter again with the same settings
+[查看本地验证报告](docs/windows/validation-v0.1.0.json)。这些测试验证本版支持的表示和转换行为，不构成所有 PSD 文件或 Photoshop 完整兼容的保证。
 
-### Canvas and files
-- Multiple projects in tabs
-- Search Commands (⌘F): find every menu command and tool by name, as in Raycast or Obsidian, and run it with Return
-- Toggle Fullscreen (F): the canvas alone on black over the whole screen, with every panel put away; F or Esc brings them back
-- Rulers (⌘R), guides dragged from them, a layout grid with adjustable spacing and subdivisions, and Snap To for guides, grid, layers and document bounds
-- Crop with snapping, ratios including 3:4 and 9:16, and Option for symmetric cropping; with a selection, the crop starts at it
-- Canvas Size, Image Size and Trim
-- A Navigator minimap in the canvas's corner from 300% zoom: the whole document in small with a box around the view; click or drag to move there (View › Navigator)
-- Sharp high-quality downsampling when zoomed out, and a pixel grid when zoomed in
-- Import JPEG, PNG, HEIC, TIFF, WebP, SVG, camera RAW (with a develop step first) and Photoshop PSD and PSB (8-bit RGB; not CMYK). Photoshop folders, masks, blend modes, fill rectangles/ellipses, and simple horizontal text stay editable; other vectors and vertical text become pixels. A conversion report is shown before anything is applied.
-- Large documents: the memory budget scales with your Mac, and a Photoshop file too big to open has its layers cropped to the canvas instead
-- Export PNG (⇧⌘E), Export JPEG (⇧⌥⌘S), and Export As (⇧⌥⌘W) for PNG, JPEG or a one-page PDF at the print size, scaled if you like, with a live preview, JPEG quality and file size; Copy Merged
-- Keep working while a project saves
-- Photoshop-style keyboard shortcuts throughout, remappable in Edit > Keyboard Shortcuts
-- Drag a number's label to scrub its value, as in Photoshop
-- Automatic updates, signed and notarized
+## 目录说明
 
-### Works with AI agents
-- AI agents and scripts can build and edit projects directly: a `.comp` is a folder of PNG layers and a manifest, and an open project updates live as it's written. See [Writing Compositor projects](docs/writing-comp-files.md)
+```text
+Compositor/              原版 macOS Swift 源码
+Compositor.xcodeproj/    原版 Xcode 工程
+CompositorTests/         原版测试
+windows/                Windows 客户端、构建脚本和测试样本
+docs/windows/           Windows 截图与验证记录
+README.upstream.md      基线版本的原版 README
+LICENSE                 原作者 MIT 许可证与版权声明
+```
 
-## Requirements
+原版 macOS 代码和 `.comp` schema 没有因 Windows 实现而修改。原版构建方式请阅读 [原版 README](README.upstream.md)。
 
-- macOS 26.0 or later on a Mac with Apple silicon
-- Xcode 26 or later (to build from source)
+## 原作者、致谢与许可证
 
-## Translations
+- **原作者：Robbie Tilton** — [GitHub](https://github.com/robbietilton) · [Compositor 原仓库](https://github.com/robbietilton/Compositor)
+- **原始版权：Copyright (c) 2026 Wonder Assembly LLC**。完整 MIT 声明保留于 [LICENSE](LICENSE)，便携包中另附 `COMPOSITOR-LICENSE.txt`。
+- **原版基线：** [`365b5745eda537f984f3d5bed1e53c361dbc9c91`](https://github.com/robbietilton/Compositor/commit/365b5745eda537f984f3d5bed1e53c361dbc9c91)。
+- **Windows 改写与维护：** [huaixu40](https://github.com/huaixu40)。此改写继续按 MIT 许可证提供，不替代或移除原版权声明。
+- **PSD 读写：** [ag-psd](https://github.com/Agamnentzar/ag-psd) 31.0.3（MIT）。公开测试样本的来源与校验值见 [fixtures 说明](windows/test/fixtures/README.md)。
+- **桌面运行时：** [Electron](https://github.com/electron/electron) 44.8.0。便携包保留其许可证和 Chromium 第三方许可；其他运行依赖的许可列于 `THIRD-PARTY-NOTICES.txt`。
 
-Compositor is English only for now, and translation pull requests aren't being accepted. It's maintained by one person, every new string would need translating from then on, and translations in languages I don't read can't be reviewed. I'll revisit this once the app settles; until then, please don't open localization PRs.
-
-## Building
-
-Open `Compositor.xcodeproj` and run the **Compositor** scheme.
-
-## Releasing
-
-`scripts/release.sh` builds a Release version, signs it with Developer ID, notarizes and staples it, and packages it into `dist/Compositor-<version>.dmg`.
-
-It needs, all kept outside this repository:
-
-- a **Developer ID Application** certificate in the login keychain
-- notarization credentials saved with `xcrun notarytool store-credentials "compositor-notary" …`
-- [`create-dmg`](https://github.com/create-dmg/create-dmg) (`brew install create-dmg`)
-
-## License
-
-MIT — see [LICENSE](LICENSE).
+感谢原作者公开 Compositor 的源码与设计，让 Windows 改写工作有了参考基础。

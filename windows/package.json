@@ -1,0 +1,16 @@
+{
+  "name": "compositor-windows",
+  "version": "0.1.0",
+  "description": "Unofficial Windows adaptation of Compositor with layered PSD editing",
+  "private": true,
+  "main": "main.cjs",
+  "license": "MIT",
+  "scripts": {
+    "build": "esbuild src/app.js --bundle --outfile=dist/app.js",
+    "start": "npm run build && electron .",
+    "test": "npm run build && electron . --self-test",
+    "package": "npm run build && node scripts/package.cjs"
+  },
+  "dependencies": { "ag-psd": "31.0.3" },
+  "devDependencies": { "electron": "44.8.0", "esbuild": "0.25.12" }
+}

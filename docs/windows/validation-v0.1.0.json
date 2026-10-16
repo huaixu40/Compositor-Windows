@@ -1,0 +1,79 @@
+{
+  "timestamp": "2026-10-16T14:59:12.871Z",
+  "environment": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) CompositorWindows/0.1.0 Chrome/152.0.7977.167 Electron/44.8.0 Safari/537.36",
+  "passed": 14,
+  "failed": 0,
+  "results": [
+    {
+      "name": "PSD binary round trip: groups, offsets, visibility, blend and mask",
+      "passed": true
+    },
+    {
+      "name": "PSD rejects CMYK / 16 bit / PSB before decoding",
+      "passed": true
+    },
+    {
+      "name": "PSD unsupported clipping has explicit conversion report",
+      "passed": true
+    },
+    {
+      "name": "PSD disabled mask and transformed layer round trip",
+      "passed": true
+    },
+    {
+      "name": "PSD Levels adjustment and mask retain parameters across PSD and project saves",
+      "passed": true
+    },
+    {
+      "name": "External PSD: external-test.psd",
+      "passed": true
+    },
+    {
+      "name": "External PSD: external-text.psd",
+      "passed": true
+    },
+    {
+      "name": "Project round trip retains editable filters, mask and groups",
+      "passed": true
+    },
+    {
+      "name": "Project rejects unsupported version and invalid transform",
+      "passed": true
+    },
+    {
+      "name": "Exposure, levels, curves, grayscale, sharpen and alpha invariance",
+      "passed": true
+    },
+    {
+      "name": "Undo / redo restores image pixels and layer properties",
+      "passed": true
+    },
+    {
+      "name": "UI brush, selection fill, mask, undo and layer duplication",
+      "passed": true
+    },
+    {
+      "name": "Adjustment dialog preview cancels without mutation",
+      "passed": true
+    },
+    {
+      "name": "Desktop IPC file save / reopen / source overwrite protection",
+      "passed": true
+    }
+  ],
+  "conversionReports": [
+    {
+      "name": "external-test.psd",
+      "notes": [
+        "Layer 2: Layer styles are not rendered or retained in the editable copy."
+      ]
+    },
+    {
+      "name": "external-text.psd",
+      "notes": [
+        "a: Text becomes cached pixels; text will no longer be editable.",
+        "a: Layer styles are not rendered or retained in the editable copy."
+      ]
+    }
+  ]
+}

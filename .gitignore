@@ -1,4 +1,5 @@
 # Build output
+/work/
 dist/
 build/
 DerivedData/
