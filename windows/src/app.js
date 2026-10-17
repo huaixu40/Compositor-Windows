@@ -1,16 +1,19 @@
+import { t, message as translateMessage, bindStaticUI, setLanguage, getLanguage } from './i18n.js';
+import { defaultAdjustment, editAdjustment } from './psd-editor.js';
 import { canvas, copy, layer, newDocument, walk, findLayer, siblings, cloneLayer, History, invalidate, composite, localPoint, demoDocument, BLENDS, curveLut, applyFilter, pixelBytes } from './engine.js';
 import { importPsd, exportPsd, serializeProject, parseProject, loadImage, checkPsd, readPsd, writePsd } from './formats.js';
 const $ = id => document.getElementById(id);
 let doc = newDocument(1600, 1000), active = doc.layers[0].id, history = new History(), dirty = false, welcome = true, zoom = .5, tool = 'move', target = 'image', selection = null, preview = null, cloneSource = null, drag = null, busy = false;
 let toastTimer;
-function toast(message) { $('toast').textContent = message; $('toast').style.display = 'block'; clearTimeout(toastTimer); toastTimer = setTimeout(() => $('toast').style.display = 'none', 6000); }
-function status(message) { $('status').textContent = message; }
+bindStaticUI();
+function toast(message) { $('toast').textContent = translateMessage(message); $('toast').style.display = 'block'; clearTimeout(toastTimer); toastTimer = setTimeout(() => $('toast').style.display = 'none', 6000); }
+function status(message) { $('status').textContent = translateMessage(message); }
 function selected() { return findLayer(doc, active); }
 function markDirty() { dirty = true; window.desktop?.dirty(true); }
 function checkpoint() { history.push(doc); markDirty(); }
-function edit(action) { if (busy) return; try { checkpoint(); action(); render(); } catch (error) { toast(error.message); } }
+function edit(action) { if (busy) return; try { checkpoint(); action(); if (welcome) { welcome = false; $('welcome').style.display = 'none'; $('canvas-wrap').style.display = 'block'; fit(); } render(); } catch (error) { toast(error.message); } }
 function editable() { const l = selected(); if (!l?.image) { toast('Select a pixel layer first.'); return null; } return l; }
-function discard() { return !dirty || confirm('Discard unsaved changes? Save a .cwin project to keep your editable layers and filters.'); }
+function discard() { return !dirty || confirm(t('Discard unsaved changes? Save a .cwin project to keep your editable layers and filters.')); }
 function adopt(next, modified = false) { doc = next; history = new History(); active = doc.layers[0]?.id; dirty = modified; window.desktop?.dirty(dirty); selection = null; target = 'image'; preview = null; cloneSource = null; welcome = false; $('welcome').style.display = 'none'; $('canvas-wrap').style.display = 'block'; fit(); render(); }
 function fit() { const box = $('viewport'); zoom = Math.min(1, (box.clientWidth - 90) / doc.width, (box.clientHeight - 90) / doc.height); zoom = Math.max(.03, zoom); sizeView(); }
 function sizeView() { const wrap = $('canvas-wrap'); wrap.style.width = `${doc.width * zoom}px`; wrap.style.height = `${doc.height * zoom}px`; for (const id of ['canvas', 'overlay']) { $(id).style.width = `${doc.width * zoom}px`; $(id).style.height = `${doc.height * zoom}px`; } $('zoom-value').textContent = `${Math.round(zoom * 100)}%`; }
@@ -28,31 +31,31 @@ function render() {
   renderPixels(); sizeView(); renderLayers(); renderProperties(); updateTool();
   $('doc-title').textContent = doc.name + (dirty ? ' •' : ''); $('doc-mode').textContent = `${doc.width} × ${doc.height}  ·  RGB / 8`;
   $('undo').disabled = !history.past.length; $('redo').disabled = !history.future.length;
-  let count = 0; walk(doc.layers, () => count++); $('layer-count').textContent = `${count} layers`;
-  status(`${doc.width} × ${doc.height} px   ·   ${target === 'mask' ? 'MASK · black hides / white reveals' : tool === 'clone' ? 'Alt-click the layer to choose a clone source' : 'Local editing · source file protected'}`);
+  let count = 0; walk(doc.layers, () => count++); $('layer-count').textContent = t('{count} layers', {count});
+  status(`${doc.width} × ${doc.height} px   ·   ${t(target === 'mask' ? 'MASK · black hides / white reveals' : tool === 'clone' ? 'Alt-click the layer to choose a clone source' : 'Local editing · source file protected')}`);
 }
 function thumb(image, isTarget) { const img = document.createElement('img'); img.className = 'thumb' + (isTarget ? ' target' : ''); const c = canvas(40, 32); if (image) c.getContext('2d').drawImage(image, 0, 0, 40, 32); img.src = c.toDataURL(); return img; }
 function renderLayers() {
   const root = $('layers'); root.replaceChildren();
   walk(doc.layers, (l, depth) => {
     const row = document.createElement('div'); row.className = 'layer' + (l.id === active ? ' active' : ''); row.style.paddingLeft = `${8 + depth * 15}px`; row.setAttribute('data-layer', l.id);
-    const eye = document.createElement('button'); eye.className = 'visibility'; eye.textContent = l.visible ? '◉' : '○'; eye.title = 'Toggle visibility'; eye.onclick = event => { event.stopPropagation(); edit(() => l.visible = !l.visible); }; row.append(eye);
-    const image = thumb(l.image, l.id === active && target === 'image'); image.title = l.children ? 'Layer group' : 'Edit pixels'; image.onclick = event => { event.stopPropagation(); active = l.id; target = 'image'; render(); }; row.append(image);
-    if (l.mask) { const mask = thumb(l.mask, l.id === active && target === 'mask'); mask.title = 'Edit mask; Shift-click enables/disables'; mask.style.opacity = l.maskEnabled ? 1 : .4; mask.onclick = event => { event.stopPropagation(); active = l.id; if (event.shiftKey) edit(() => l.maskEnabled = !l.maskEnabled); else { target = 'mask'; tool = 'brush'; $('color').value = '#000000'; updateTool(); render(); } }; row.append(mask); }
+    const eye = document.createElement('button'); eye.className = 'visibility'; eye.textContent = l.visible ? '◉' : '○'; eye.title = t('Toggle visibility'); eye.onclick = event => { event.stopPropagation(); edit(() => l.visible = !l.visible); }; row.append(eye);
+    const image = thumb(l.image, l.id === active && target === 'image'); image.title = t(l.children ? 'Layer group' : 'Edit pixels'); image.onclick = event => { event.stopPropagation(); active = l.id; target = 'image'; render(); }; row.append(image);
+    if (l.mask) { const mask = thumb(l.mask, l.id === active && target === 'mask'); mask.title = t('Edit mask; Shift-click enables/disables'); mask.style.opacity = l.maskEnabled ? 1 : .4; mask.onclick = event => { event.stopPropagation(); active = l.id; if (event.shiftKey) edit(() => l.maskEnabled = !l.maskEnabled); else { target = 'mask'; tool = 'brush'; $('color').value = '#000000'; updateTool(); render(); } }; row.append(mask); }
     const name = document.createElement('span'); name.className = 'name'; name.textContent = (l.children ? '▸ ' : l.adjustment ? '◐ ' : '') + l.name; row.append(name);
     if (l.filters.length) { const fx = document.createElement('span'); fx.className = 'kind'; fx.textContent = 'fx'; row.append(fx); }
     row.onclick = () => { active = l.id; target = 'image'; render(); }; root.append(row);
   });
 }
 function renderProperties() {
-  const l = selected(); $('layer-name').value = l?.name || ''; $('layer-x').value = Math.round(l?.x || 0); $('layer-y').value = Math.round(l?.y || 0); $('layer-scale').value = Math.round((l?.scale || 1) * 100); $('layer-rotation').value = l?.rotation || 0;
+  const l = selected(); $('edit-adjustment').disabled = !l?.adjustment; $('invert-mask').disabled = $('remove-mask').disabled = !l?.mask; $('layer-name').value = l?.name || ''; $('layer-x').value = Math.round(l?.x || 0); $('layer-y').value = Math.round(l?.y || 0); $('layer-scale').value = Math.round((l?.scale || 1) * 100); $('layer-rotation').value = l?.rotation || 0;
   $('blend').value = l?.blend || 'normal'; $('opacity').value = Math.round((l?.opacity ?? 1) * 100); $('opacity-label').textContent = $('opacity').value + '%';
   for (const id of ['layer-x', 'layer-y', 'layer-scale', 'layer-rotation', 'flip', 'reset-transform']) $(id).disabled = !l?.image;
   $('filter-list').replaceChildren();
   (l?.filters || []).forEach((f, index) => {
-    const row = document.createElement('div'); row.className = 'filter-row'; const toggle = document.createElement('button'); toggle.textContent = f.enabled === false ? '○' : '◉'; toggle.title = 'Toggle filter'; toggle.onclick = () => edit(() => f.enabled = f.enabled === false);
-    const name = document.createElement('span'); name.textContent = filterDefinitions[f.kind].title; name.title = 'Double-click to edit'; name.ondblclick = () => adjust(f.kind, index);
-    const remove = document.createElement('button'); remove.textContent = '×'; remove.title = 'Remove filter'; remove.onclick = () => edit(() => l.filters.splice(index, 1)); row.append(toggle, name, remove); $('filter-list').append(row);
+    const row = document.createElement('div'); row.className = 'filter-row'; const toggle = document.createElement('button'); toggle.textContent = f.enabled === false ? '○' : '◉'; toggle.title = t('Toggle filter'); toggle.onclick = () => edit(() => f.enabled = f.enabled === false);
+    const name = document.createElement('span'); name.textContent = t(filterDefinitions[f.kind].title); name.title = t('Double-click to edit'); name.ondblclick = () => adjust(f.kind, index);
+    const remove = document.createElement('button'); remove.textContent = '×'; remove.title = t('Remove filter'); remove.onclick = () => edit(() => l.filters.splice(index, 1)); row.append(toggle, name, remove); $('filter-list').append(row);
   });
 }
 async function run(action) { if (busy) return; busy = true; document.body.style.cursor = 'wait'; try { await action(); } catch (error) { console.error(error); toast(error.message); status(error.message); } finally { busy = false; document.body.style.cursor = ''; } }
@@ -72,24 +75,24 @@ async function readFile(add = false) {
       if (add) { if (pixelBytes(doc) / 4 + image.width * image.height > 64_000_000) throw new Error('Document exceeds 64 MP pixel budget.'); history.push(doc); const l = layer(file.name, image); doc.layers.unshift(l); active = l.id; markDirty(); render(); return; }
       next = { width: image.width, height: image.height, name: file.name.replace(/\.[^.]+$/, ''), layers: [layer(file.name, image)] };
     }
-    adopt(next); toast(`Opened ${file.name}`);
+    adopt(next); toast(t('Opened {name}', {name:file.name}));
   });
 }
 function report(notes, hasPreview) {
-  $('report-content').replaceChildren(); const p = document.createElement('p'); p.className = 'warning'; p.textContent = 'This PSD contains features that this preview cannot reproduce exactly. The editable copy converts or drops the items below. Your original file is protected; use the merged preview to retain the stored appearance as one layer.'; $('report-content').append(p);
-  const ul = document.createElement('ul'); for (const note of notes) { const li = document.createElement('li'); li.textContent = note; ul.append(li); } $('report-content').append(ul);
+  $('report-content').replaceChildren(); const p = document.createElement('p'); p.className = 'warning'; p.textContent = t('This PSD contains features that this preview cannot reproduce exactly. The editable copy converts or drops the items below. Your original file is protected; use the merged preview to retain the stored appearance as one layer.'); $('report-content').append(p);
+  const ul = document.createElement('ul'); for (const note of notes) { const li = document.createElement('li'); li.textContent = translateMessage(note); ul.append(li); } $('report-content').append(ul);
   $('report-preview').disabled = !hasPreview; $('report-dialog').showModal();
   return new Promise(resolve => { const finish = value => { $('report-dialog').close(); resolve(value); }; $('report-cancel').onclick = () => finish('cancel'); $('report-preview').onclick = () => finish('preview'); $('report-accept').onclick = () => finish('edit'); $('report-dialog').oncancel = event => { event.preventDefault(); finish('cancel'); }; });
 }
 async function save(extension) {
   await run(async () => {
-    if (extension === 'psd' && !confirm('Export a layered PSD copy?\n\nWindows filters and transforms are baked into each pixel layer. Masks, groups, visibility, opacity and supported blend modes remain editable. Save a .cwin project as well to retain the filter stack.')) return;
+    if (extension === 'psd' && !confirm(t('Export a layered PSD copy?\n\nWindows filters and transforms are baked into each pixel layer. Masks, groups, visibility, opacity and supported blend modes remain editable. Save a .cwin project as well to retain the filter stack.'))) return;
     let bytes;
     if (extension === 'psd') bytes = exportPsd(doc);
     else if (extension === 'cwin') bytes = serializeProject(doc);
     else { let c = composite(doc); if (extension === 'jpg') { const white = canvas(doc.width, doc.height), ctx = white.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, doc.width, doc.height); ctx.drawImage(c, 0, 0); c = white; } const blob = await new Promise(resolve => c.toBlob(resolve, extension === 'jpg' ? 'image/jpeg' : 'image/png', .94)); bytes = new Uint8Array(await blob.arrayBuffer()); }
     const saved = await window.desktop.save({ name: doc.name.replace(/[<>:"/\\|?*]/g, '_') + (extension === 'psd' ? '-windows' : '') + '.' + extension, extension, bytes });
-    if (saved) { if (extension === 'cwin') { dirty = false; window.desktop.dirty(false); render(); } toast(`Saved ${saved}`); }
+    if (saved) { if (extension === 'cwin') { dirty = false; window.desktop.dirty(false); render(); } toast(t('Saved {name}', {name:saved})); }
   });
 }
 
@@ -107,11 +110,11 @@ function adjust(kind, index = -1) {
   const l = editable(); if (!l) return;
   if (l.filters.length >= 30 && index < 0) { toast('Maximum 30 filters per layer.'); return; }
   const definition = filterDefinitions[kind], filter = index >= 0 ? { ...l.filters[index] } : { kind, enabled: true };
-  $('adjust-title').textContent = definition.title; $('adjust-controls').replaceChildren();
+  $('adjust-title').textContent = t(definition.title); $('adjust-controls').replaceChildren();
   for (const [key, title, min, max, step, initial] of definition.fields) {
     filter[key] ??= initial;
     const label = document.createElement('label'), text = document.createElement('span'), input = document.createElement('input'), output = document.createElement('output');
-    text.textContent = title; Object.assign(input, { type: 'range', min, max, step, value: filter[key] }); input.setAttribute('aria-label', title); output.textContent = filter[key];
+    text.textContent = t(title); Object.assign(input, { type: 'range', min, max, step, value: filter[key] }); input.setAttribute('aria-label', t(title)); output.textContent = filter[key];
     input.oninput = () => { filter[key] = Number(input.value); output.textContent = input.value; update(); }; label.append(text, input, output); $('adjust-controls').append(label);
   }
   function update() {
@@ -126,8 +129,8 @@ function adjust(kind, index = -1) {
 }
 function updateTool() {
   document.querySelectorAll('[data-tool]').forEach(button => button.classList.toggle('active', button.dataset.tool === tool));
-  $('tool-name').textContent = ({ move: 'Move', brush: 'Brush', erase: 'Eraser', clone: 'Clone', select: 'Selection', picker: 'Eyedropper' })[tool];
-  $('tool-hint').textContent = tool === 'clone' ? 'Alt-click to set source. Paint to clone pixels.' : target === 'mask' ? 'Mask: black hides, white reveals. Eraser reveals.' : 'B brush · E eraser · S clone · M select · V move';
+  $('tool-name').textContent = t(({ move: 'Move', brush: 'Brush', erase: 'Eraser', clone: 'Clone', select: 'Selection', picker: 'Eyedropper' })[tool]);
+  $('tool-hint').textContent = t(tool === 'clone' ? 'Alt-click to set source. Paint to clone pixels.' : target === 'mask' ? 'Mask: black hides, white reveals. Eraser reveals.' : 'B brush · E eraser · S clone · M select · V move');
   drawOverlay();
 }
 function point(event) { const rect = $('overlay').getBoundingClientRect(); return { x: (event.clientX - rect.left) / zoom, y: (event.clientY - rect.top) / zoom }; }
@@ -143,6 +146,16 @@ function paint(l, start, end) {
     ctx.globalCompositeOperation = tool === 'erase' && target !== 'mask' ? 'destination-out' : 'source-over';
     let color = $('color').value;
     if (target === 'mask') { const rgb = color.slice(1).match(/../g).map(x => parseInt(x, 16)); const gray = tool === 'erase' ? 255 : Math.round(.2126 * rgb[0] + .7152 * rgb[1] + .0722 * rgb[2]); color = `rgb(${gray},${gray},${gray})`; }
+    if (Number($('brush-hardness').value) < 100) {
+      const radius = size / 2, hardness = Math.max(0, Number($('brush-hardness').value)) / 100;
+      const distance = Math.hypot(end.x - start.x, end.y - start.y), steps = Math.max(1, Math.ceil(distance / Math.max(.5, radius * .2)));
+      for (let i = distance ? 1 : 0; i <= (distance ? steps : 0); i++) {
+        const x = start.x + (end.x - start.x) * i / steps, y = start.y + (end.y - start.y) * i / steps;
+        const gradient = ctx.createRadialGradient(x, y, radius * hardness, x, y, radius);
+        gradient.addColorStop(0, color); gradient.addColorStop(1, 'transparent'); ctx.fillStyle = gradient; ctx.beginPath(); ctx.arc(x, y, radius, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.restore(); invalidate(l); return;
+    }
     ctx.strokeStyle = ctx.fillStyle = color; ctx.lineWidth = size; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.beginPath(); ctx.moveTo(start.x, start.y); ctx.lineTo(end.x, end.y); ctx.stroke(); if (start.x === end.x && start.y === end.y) { ctx.beginPath(); ctx.arc(end.x, end.y, size / 2, 0, 2 * Math.PI); ctx.fill(); }
   }
   ctx.restore(); invalidate(l);
@@ -153,7 +166,7 @@ $('overlay').onpointerdown = event => {
   if (tool === 'picker') { const x = Math.max(0, Math.min(doc.width - 1, Math.floor(p.x))), y = Math.max(0, Math.min(doc.height - 1, Math.floor(p.y))); const rgb = $('canvas').getContext('2d').getImageData(x, y, 1, 1).data; $('color').value = '#' + [...rgb].slice(0, 3).map(n => n.toString(16).padStart(2, '0')).join(''); return; }
   if (tool === 'select') { drag = { start: p }; selection = { x: p.x, y: p.y, w: 0, h: 0 }; }
   else {
-    if (!l?.image) { toast('Select a pixel layer for this tool.'); return; }
+    if (!l?.image && !(target === 'mask' && l?.mask && ['brush', 'erase'].includes(tool))) { toast('Select a pixel layer for this tool.'); return; }
     const local = localPoint(l, p);
     if (tool === 'clone' && event.altKey) { cloneSource = { ...local, id: l.id }; toast('Clone source set.'); return; }
     if (tool === 'clone' && (!cloneSource || cloneSource.id !== l.id || target === 'mask')) { toast('Select pixels and Alt-click this layer to set the clone source.'); return; }
@@ -173,7 +186,7 @@ $('overlay').onpointermove = event => {
 function endDrag() { if (!drag) return; drag = null; render(); }
 $('overlay').onpointerup = endDrag; $('overlay').onpointercancel = endDrag;
 
-for (const [id, fn] of Object.entries({ open: () => readFile(), 'welcome-open': () => readFile(), import: () => readFile(true), save: () => save('cwin'), 'export-psd': () => save('psd'), 'export-png': () => save('png'), 'export-jpg': () => save('jpg'), demo: () => { if (discard()) adopt(demoDocument(), true); }, help: () => $('help-dialog').showModal(), fit, actual: () => { zoom = 1; sizeView(); drawOverlay(); }, 'zoom-in': () => { zoom = Math.min(8, zoom * 1.25); sizeView(); drawOverlay(); }, 'zoom-out': () => { zoom = Math.max(.03, zoom / 1.25); sizeView(); drawOverlay(); }, deselect: () => { selection = null; drawOverlay(); }, undo: () => { if (history.past.length) { doc = history.undo(doc); active = findLayer(doc, active)?.id || doc.layers[0]?.id; target = 'image'; markDirty(); render(); } }, redo: () => { if (history.future.length) { doc = history.redo(doc); active = findLayer(doc, active)?.id || doc.layers[0]?.id; markDirty(); render(); } }, 'add-layer': () => edit(() => { const l = layer('Layer ' + (doc.layers.length + 1), canvas(doc.width, doc.height)); doc.layers.unshift(l); active = l.id; target = 'image'; }), duplicate: () => { const l = selected(); if (l) edit(() => { const duplicated = cloneLayer(l); walk([duplicated], n => n.id = crypto.randomUUID()); duplicated.name += ' copy'; const list = siblings(doc, l.id); list.splice(list.indexOf(l), 0, duplicated); active = duplicated.id; }); }, 'delete-layer': () => { const l = selected(); if (l) edit(() => { const list = siblings(doc, l.id); list.splice(list.indexOf(l), 1); active = doc.layers[0]?.id; }); }, 'add-mask': () => { const l = editable(); if (l) { if (l.mask) { target = 'mask'; tool = 'brush'; render(); } else edit(() => { l.mask = canvas(l.image.width, l.image.height); const ctx = l.mask.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, l.mask.width, l.mask.height); target = 'mask'; tool = 'brush'; }); $('color').value = '#000000'; updateTool(); } }, flip: () => { const l = editable(); if (l) edit(() => l.flip = !l.flip); }, 'reset-transform': () => { const l = editable(); if (l) edit(() => { l.scale = 1; l.rotation = 0; l.flip = false; }); }, fill: () => { const l = editable(); if (l) edit(() => { const surface = target === 'mask' ? l.mask : l.image, ctx = surface.getContext('2d'); ctx.save(); clipSelection(ctx, l); ctx.fillStyle = target === 'mask' ? ($('color').value === '#ffffff' ? '#fff' : '#000') : $('color').value; ctx.fillRect(0, 0, surface.width, surface.height); ctx.restore(); invalidate(l); }); } })) $(id).onclick = fn;
+for (const [id, fn] of Object.entries({ open: () => readFile(), 'welcome-open': () => readFile(), import: () => readFile(true), save: () => save('cwin'), 'export-psd': () => save('psd'), 'export-png': () => save('png'), 'export-jpg': () => save('jpg'), demo: () => { if (discard()) adopt(demoDocument(), true); }, help: () => $('help-dialog').showModal(), fit, actual: () => { zoom = 1; sizeView(); drawOverlay(); }, 'zoom-in': () => { zoom = Math.min(8, zoom * 1.25); sizeView(); drawOverlay(); }, 'zoom-out': () => { zoom = Math.max(.03, zoom / 1.25); sizeView(); drawOverlay(); }, deselect: () => { selection = null; drawOverlay(); }, undo: () => { if (history.past.length) { doc = history.undo(doc); active = findLayer(doc, active)?.id || doc.layers[0]?.id; target = 'image'; markDirty(); render(); } }, redo: () => { if (history.future.length) { doc = history.redo(doc); active = findLayer(doc, active)?.id || doc.layers[0]?.id; target = 'image'; markDirty(); render(); } }, 'add-layer': () => edit(() => { const l = layer('Layer ' + (doc.layers.length + 1), canvas(doc.width, doc.height)); doc.layers.unshift(l); active = l.id; target = 'image'; }), duplicate: () => { const l = selected(); if (l) edit(() => { const duplicated = cloneLayer(l); walk([duplicated], n => n.id = crypto.randomUUID()); duplicated.name += ' copy'; const list = siblings(doc, l.id); list.splice(list.indexOf(l), 0, duplicated); active = duplicated.id; }); }, 'delete-layer': () => { const l = selected(); if (l) edit(() => { const list = siblings(doc, l.id); list.splice(list.indexOf(l), 1); active = doc.layers[0]?.id; target = 'image'; }); }, 'add-mask': () => { const l = selected(); if (l) { if (l.mask) { target = 'mask'; tool = 'brush'; render(); } else edit(() => { l.mask = canvas(l.image?.width || doc.width, l.image?.height || doc.height); const ctx = l.mask.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, l.mask.width, l.mask.height); target = 'mask'; tool = 'brush'; }); $('color').value = '#000000'; updateTool(); } }, flip: () => { const l = editable(); if (l) edit(() => l.flip = !l.flip); }, 'reset-transform': () => { const l = editable(); if (l) edit(() => { l.scale = 1; l.rotation = 0; l.flip = false; }); }, fill: () => { const l = target === 'mask' ? selected() : editable(); if (l && (target !== 'mask' || l.mask)) edit(() => { const surface = target === 'mask' ? l.mask : l.image, ctx = surface.getContext('2d'); ctx.save(); clipSelection(ctx, l); ctx.fillStyle = target === 'mask' ? maskColor($('color').value) : $('color').value; ctx.fillRect(0, 0, surface.width, surface.height); ctx.restore(); invalidate(l); }); } })) $(id).onclick = fn;
 $('new').onclick = () => { if (!discard()) return; $('new-dialog').returnValue = 'cancel'; $('new-dialog').showModal(); };
 $('new-dialog').onclose = () => { if ($('new-dialog').returnValue === 'create') { try { adopt(newDocument(Number($('new-width').value), Number($('new-height').value)), true); } catch (error) { toast(error.message); } } };
 for (const [id, direction] of [['layer-up', -1], ['layer-down', 1]]) $(id).onclick = () => { const l = selected(); if (!l) return; const list = siblings(doc, l.id), i = list.indexOf(l), j = i + direction; if (j >= 0 && j < list.length) edit(() => [list[i], list[j]] = [list[j], list[i]]); };
@@ -191,13 +204,40 @@ document.addEventListener('keydown', event => {
   else if ({ v: 'move', b: 'brush', e: 'erase', s: 'clone', m: 'select', i: 'picker' }[key]) { tool = { v: 'move', b: 'brush', e: 'erase', s: 'clone', m: 'select', i: 'picker' }[key]; updateTool(); }
 });
 window.addEventListener('resize', () => { if (!welcome) { fit(); drawOverlay(); } });
+function refreshLanguage(language) {
+  setLanguage(language); $('language').value = getLanguage();
+  for (const option of $('blend').options) option.textContent = t(option.value[0].toUpperCase() + option.value.slice(1));
+  render();
+}
+$('settings').onclick = () => $('settings-dialog').showModal();
+$('language').onchange = async () => {
+  const before = getLanguage(), requested = $('language').value; $('language').disabled = true;
+  try { const settings = await window.desktop.updateSettings({language: requested}); refreshLanguage(settings.language); }
+  catch (error) { $('language').value = before; toast(error.message); }
+  finally { $('language').disabled = false; }
+};
+window.appReady = window.desktop.getSettings().then(settings => refreshLanguage(settings.language)).catch(error => { refreshLanguage('en'); toast(error.message); });
+function maskColor(color) { const rgb = color.slice(1).match(/../g).map(x => parseInt(x, 16)); const gray = Math.round(.2126 * rgb[0] + .7152 * rgb[1] + .0722 * rgb[2]); return `rgb(${gray},${gray},${gray})`; }
+$('invert-mask').onclick = () => { const l = selected(); if (l?.mask) edit(() => { const ctx = l.mask.getContext('2d'), data = ctx.getImageData(0, 0, l.mask.width, l.mask.height); for (let i = 0; i < data.data.length; i += 4) for (let c = 0; c < 3; c++) data.data[i + c] = 255 - data.data[i + c]; ctx.putImageData(data, 0, 0); }); };
+$('remove-mask').onclick = () => { const l = selected(); if (l?.mask) edit(() => { l.mask = null; target = 'image'; }); };
+$('new-adjustment').onclick = () => {
+  if (busy) return;
+  const type = $('adjustment-type').value, l = layer(t(type[0].toUpperCase() + type.slice(1)), null, {adjustment: defaultAdjustment(type)});
+  editAdjustment(l.adjustment, value => edit(() => { l.adjustment = value; const anchor = selected(), list = anchor ? siblings(doc, anchor.id) : doc.layers; list.splice(anchor ? list.indexOf(anchor) : 0, 0, l); active = l.id; target = 'image'; }), () => {});
+};
+$('edit-adjustment').onclick = () => {
+  const l = selected(); if (busy || !l?.adjustment) return;
+  editAdjustment(l.adjustment, value => edit(() => l.adjustment = value), value => { preview = value ? { id:l.id, adjustment:value } : null; renderPixels(); });
+};
 render();
 if (new URLSearchParams(location.search).get('demo') === '1') adopt(demoDocument());
 
 // Exercised in the real Electron renderer; no DOM/canvas mocks.
 window.runSelfTest = async (externalFixtures = []) => {
+  await window.appReady;
   const results = [], conversionReports = [], test = async (name, fn) => { try { await fn(); results.push({ name, passed: true }); } catch (error) { results.push({ name, passed: false, error: error.stack }); } };
   const assert = (ok, message) => { if (!ok) throw new Error(message); };
+  const closed = (id, action) => new Promise(resolve => { $(id).addEventListener('close', resolve, { once: true }); action(); });
   const solid = (w, h, color) => { const c = canvas(w, h), ctx = c.getContext('2d'); ctx.fillStyle = color; ctx.fillRect(0, 0, w, h); return c; };
   const pixel = (c, x = 0, y = 0) => [...c.getContext('2d').getImageData(x, y, 1, 1).data];
   const equalPixels = (a, b, tolerance = 1) => { const x = a.getContext('2d').getImageData(0, 0, a.width, a.height).data, y = b.getContext('2d').getImageData(0, 0, b.width, b.height).data; assert(x.length === y.length, 'Pixel count changed'); let max = 0; for (let i = 0; i < x.length; i++) max = Math.max(max, Math.abs(x[i] - y[i])); assert(max <= tolerance, `Pixel difference ${max} > ${tolerance}`); };
@@ -213,7 +253,81 @@ window.runSelfTest = async (externalFixtures = []) => {
   await test('Exposure, levels, curves, grayscale, sharpen and alpha invariance', () => { const c = solid(4, 4, 'rgba(80,120,160,0.5)'); const a = pixel(c); const e = pixel(applyFilter(c, { kind: 'exposure', exposure: 1, contrast: 0 })); assert(e[0] > a[0] * 1.8 && e[3] === a[3], 'Exposure/alpha incorrect'); const bw = pixel(applyFilter(c, { kind: 'bw' })); assert(Math.abs(bw[0] - bw[2]) <= 1, 'Not grayscale'); equalPixels(c, applyFilter(c, { kind: 'levels', black: 0, white: 255, gamma: 1 })); equalPixels(c, applyFilter(c, { kind: 'curves', shadows: 64, midtones: 128, highlights: 192 })); equalPixels(c, applyFilter(c, { kind: 'sharpen', amount: 0 })); });
   await test('Undo / redo restores image pixels and layer properties', () => { const h = new History(), d = newDocument(4, 4); h.push(d); d.layers[0].image.getContext('2d').fillRect(0, 0, 4, 4); d.layers[0].name = 'Changed'; const previous = h.undo(d); assert(pixel(previous.layers[0].image)[3] === 0, 'Undo pixels'); assert(previous.layers[0].name === 'Layer 1', 'Undo metadata'); assert(h.redo(previous).layers[0].name === 'Changed', 'Redo'); });
   await test('UI brush, selection fill, mask, undo and layer duplication', () => { adopt(newDocument(80, 60)); tool = 'brush'; $('color').value = '#ff0000'; $('brush-size').value = '10'; const rect = $('overlay').getBoundingClientRect(), x = rect.left + 20 * zoom, y = rect.top + 20 * zoom; $('overlay').dispatchEvent(new PointerEvent('pointerdown', { clientX: x, clientY: y, button: 0, pointerId: 1 })); endDrag(); assert(pixel(selected().image, 20, 20)[0] === 255, 'Brush did not paint'); selection = { x: 0, y: 0, w: 5, h: 5 }; $('fill').click(); assert(pixel(selected().image, 0, 0)[3] === 255, 'Fill'); $('add-mask').click(); assert(selected().mask, 'Mask missing'); $('duplicate').click(); assert(doc.layers.length === 2, 'Duplicate'); $('undo').click(); assert(doc.layers.length === 1, 'UI undo'); });
-  await test('Adjustment dialog preview cancels without mutation', () => { adopt(newDocument(20, 20)); adjust('exposure'); const input = $('adjust-controls').querySelector('input'); input.value = '2'; input.dispatchEvent(new Event('input')); assert(selected().filters.length === 0, 'Preview mutated filters'); $('adjust-dialog').close('cancel'); preview = null; });
+  await test('Adjustment dialog preview cancels without mutation', async () => { adopt(newDocument(20, 20)); adjust('exposure'); const input = $('adjust-controls').querySelector('input'); input.value = '2'; input.dispatchEvent(new Event('input')); assert(selected().filters.length === 0, 'Preview mutated filters'); await closed('adjust-dialog', () => $('adjust-dialog').close('cancel')); assert(preview === null, 'Filter preview not cleared'); });
+
+  await new Promise(resolve => setTimeout(resolve, 30));
+  await test('Language switches through Settings, preserves user content, validates IPC', async () => {
+    adopt({ width: 8, height: 8, name: 'Open…', layers: [layer('Settings', solid(8, 8, '#809090'))] });
+    for (const [language, expected] of [['en','Open…'], ['zh-CN','打开…'], ['en','Open…'], ['zh-CN','打开…']]) {
+      $('settings').click(); $('language').value = language; await $('language').onchange(); await closed('settings-dialog', () => $('settings-dialog').close());
+      assert($('open').textContent === expected, 'Static label did not update');
+      assert(doc.name === 'Open…' && selected().name === 'Settings', 'User data was translated');
+      assert(document.documentElement.lang === language, 'Wrong HTML language');
+      assert((await window.desktop.getSettings()).language === language, 'Settings not saved');
+    }
+    assert($('layer-count').textContent === '1 个图层', 'Dynamic text not translated');
+    assert(translateMessage('Artist: Layer: Text becomes cached pixels; text will no longer be editable.') === 'Artist: Layer: 文字转换为缓存像素，文字内容不再可编辑。', 'Conversion report changed layer name');
+    let rejected = false; try { await window.desktop.updateSettings({ language:'invalid' }); } catch { rejected = true; }
+    assert(rejected && (await window.desktop.getSettings()).language === 'zh-CN', 'Invalid settings accepted');
+  });
+  await test('PSD native adjustment UI edits channels, cancels preview and round trips', async () => {
+    const a = defaultAdjustment('levels'); a.red = {shadowInput:5,highlightInput:245,shadowOutput:0,highlightOutput:255,midtoneInput:1.1};
+    adopt({width:16,height:16,name:'Native adjustment',layers:[layer('Levels', null,{adjustment:a}),layer('Base',solid(16,16,'#8090a0'))]});
+    const before = composite(doc), original = JSON.stringify(selected().adjustment);
+    $('edit-adjustment').click(); const input = $('psd-controls').querySelector('[data-parameter="shadowInput"]'); input.value = '30'; input.dispatchEvent(new Event('input'));
+    assert(JSON.stringify(selected().adjustment) === original, 'Preview mutated native adjustment');
+    assert(preview?.adjustment.rgb.shadowInput === 30, 'Preview missing');
+    await closed('psd-dialog', () => $('psd-dialog').close('cancel')); equalPixels(before, composite(doc)); assert(!preview, 'Preview retained after cancel');
+    $('edit-adjustment').click(); const value = $('psd-controls').querySelector('[data-parameter="shadowInput"]'); value.value='30'; await closed('psd-dialog', () => $('psd-apply').click());
+    assert(selected().adjustment.rgb.shadowInput === 30 && selected().adjustment.red.shadowInput === 5, 'Channel edit discarded other channel');
+    const reopened = importPsd(exportPsd(doc),'edited.psd').doc;
+    assert(reopened.layers[0].adjustment.rgb.shadowInput === 30, 'PSD lost edited parameter'); equalPixels(composite(doc),composite(reopened),2);
+    $('undo').click(); assert(selected().adjustment.rgb.shadowInput === 0,'Undo native adjustment'); $('redo').click(); assert(selected().adjustment.rgb.shadowInput === 30,'Redo native adjustment');
+  });
+  await test('New PSD adjustment creation, curve validation and all supported types round trip', async () => {
+    adopt({width:8,height:8,name:'Adjustments',layers:[layer('Base',solid(8,8,'#607080'))]});
+    for (const type of ['exposure','curves','invert','levels']) {
+      $('adjustment-type').value=type; $('new-adjustment').click();
+      if (type === 'curves') { const input=$('psd-controls').querySelector('textarea'); input.value='0,0; 128,180; 255,255'; }
+      await closed('psd-dialog', () => $('psd-apply').click());
+      assert(selected().adjustment?.type===type, `Did not create ${type}`);
+    }
+    const reopened=await parseProject(serializeProject(importPsd(exportPsd(doc),'adjustments.psd').doc));
+    assert(reopened.layers.length===5 && reopened.layers[2].adjustment.rgb[1].output===180, 'Adjustment descriptors not retained');
+    equalPixels(composite(doc), composite(reopened),2);
+    active=doc.layers[2].id; $('edit-adjustment').click(); const curveInput = $('psd-controls').querySelector('textarea'); curveInput.value='0,0; 128,200; 255,255'; curveInput.dispatchEvent(new Event('input')); const validPreview = JSON.stringify(preview.adjustment); curveInput.value='0,0; 128,255; 128,20'; $('psd-apply').click(); assert(JSON.stringify(preview.adjustment) === validPreview, 'Invalid input mutated the last valid preview'); renderPixels();
+    assert($('psd-dialog').open && $('psd-error').textContent.length>0,'Invalid curve accepted');
+    await closed('psd-dialog', () => $('psd-dialog').close('cancel'));
+  });
+  await test('Group and adjustment masks support painting, gray fill, invert, remove and undo', async () => {
+    for (const options of [{children:[layer('Child',solid(32,32,'#cc9988'))],blend:'normal'},{adjustment:defaultAdjustment('invert')}]) {
+      adopt({width:32,height:32,name:'Mask target',layers:[layer('Target',null,options),layer('Base',solid(32,32,'#445566'))]});
+      $('add-mask').click(); assert(selected().mask.width===32 && target==='mask','Missing full-canvas mask');
+      $('color').value='#808080'; $('fill').click(); assert(Math.abs(pixel(selected().mask)[0]-128)<=1,'Gray fill became binary');
+      $('invert-mask').click(); assert(Math.abs(pixel(selected().mask)[0]-127)<=1,'Mask invert failed');
+      tool='brush'; $('color').value='#000000'; $('brush-size').value='8'; const rect=$('overlay').getBoundingClientRect();
+      $('overlay').dispatchEvent(new PointerEvent('pointerdown',{clientX:rect.left+16*zoom,clientY:rect.top+16*zoom,button:0,pointerId:1})); endDrag(); assert(pixel(selected().mask,16,16)[0]===0,'Non-pixel mask brush failed');
+      const reopened=importPsd(exportPsd(doc),'mask.psd').doc; equalPixels(composite(doc),composite(reopened),2);
+      $('remove-mask').click(); assert(!selected().mask && target==='image','Remove mask did not reset target'); $('undo').click(); assert(selected().mask,'Undo did not restore mask');
+    }
+  });
+  await test('Soft brush and eraser have graded edges and preserve selection bounds', () => {
+    adopt(newDocument(64,64)); tool='brush'; $('color').value='#ff0000'; $('brush-size').value='24'; $('brush-hardness').value='0'; $('brush-flow').value='100';
+    paint(selected(),{x:32,y:32},{x:32,y:32}); const c=selected().image;
+    assert(pixel(c,32,32)[3]>200 && pixel(c,41,32)[3]>0 && pixel(c,41,32)[3]<150 && pixel(c,48,32)[3]===0,'Soft edge coverage incorrect');
+    selection={x:0,y:0,w:8,h:8}; paint(selected(),{x:8,y:4},{x:8,y:4}); assert(pixel(c,9,4)[3]===0 && pixel(c,7,4)[3]>0,'Soft brush ignored selection');
+    selection=null; tool='erase'; paint(selected(),{x:32,y:32},{x:32,y:32}); assert(pixel(c,32,32)[3]<40,'Soft eraser failed'); $('brush-hardness').value='100';
+  });
+  await test('PSD mask density and feather bake effective coverage and survive export', () => {
+    const m=solid(32,32,'#fff'); m.getContext('2d').fillStyle='#000'; m.getContext('2d').fillRect(0,0,16,32);
+    const source=new Uint8Array(writePsd({width:32,height:32,canvas:solid(32,32,'#fff'),children:[{name:'Mask parameters',canvas:solid(32,32,'#fff'),mask:{canvas:m,defaultColor:255,userMaskDensity:.5,userMaskFeather:2}}]}));
+    const result=importPsd(source,'density.psd'), mask=result.doc.layers[0].mask;
+    assert(result.notes.some(n=>n.includes('baked into')), 'Baking not reported');
+    assert(pixel(mask,4,16)[0]>=126 && pixel(mask,4,16)[0]<=130,'Density not applied');
+    assert(pixel(mask,15,16)[0]>140 && pixel(mask,15,16)[0]<240,'Feather not applied');
+    const reopened=importPsd(exportPsd(result.doc),'again.psd'); equalPixels(composite(result.doc),composite(reopened.doc),2);
+  });
+
   // Wait for dialog close events before rendering the review screenshot.
   await new Promise(resolve => setTimeout(resolve, 50));
   adopt(demoDocument(), true); active = doc.layers[1].id; tool = 'move'; selected().filters.push({ kind: 'exposure', exposure: .15, contrast: 6 }); render();
@@ -231,3 +345,7 @@ window.desktopIOTest = async () => {
   if (!protectedSource) throw new Error('Source overwrite protection failed');
   return { name: 'Desktop IPC file save / reopen / source overwrite protection', passed: true };
 };
+
+window.captureLocale = (language, settings = false) => { refreshLanguage(language); if (settings && !$('settings-dialog').open) $('settings-dialog').showModal(); };
+
+window.captureAdjustment = () => { $('settings-dialog').close(); $('adjustment-type').value = 'levels'; $('new-adjustment').click(); };

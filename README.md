@@ -6,7 +6,7 @@
 >
 > An unofficial Windows adaptation of [Compositor by Robbie Tilton](https://github.com/robbietilton/Compositor). The original macOS source and MIT copyright are preserved. The Windows client is a separate Electron/Canvas implementation, not an official release or a feature-complete port.
 
-[下载 Windows 预览版](https://github.com/huaixu40/Compositor-Windows/releases/tag/windows-v0.1.0) · [Windows 详细说明](windows/README-WINDOWS.md) · [原版 README](README.upstream.md) · [许可证](LICENSE)
+[下载 Windows 预览版](https://github.com/huaixu40/Compositor-Windows/releases/tag/windows-v0.2.0) · [Windows 详细说明](windows/README-WINDOWS.md) · [原版 README](README.upstream.md) · [许可证](LICENSE)
 
 ![Compositor Windows 编辑器预览](docs/windows/preview.png)
 
@@ -14,12 +14,21 @@
 
 Compositor 原版是基于 SwiftUI、AppKit、CoreGraphics / CoreImage / Metal 的 macOS 图像编辑器，不能直接在 Windows 上编译运行。本仓库保留原版工程，并在 `windows/` 中新增 Windows 客户端，优先实现 **PSD 图层编辑和常用修图工作流**。
 
-当前版本为 **0.1.0 Preview**。它已能在 Windows 上独立启动、打开图片、编辑图层并保存，但还没有完整复现原版或 Photoshop 的全部功能。以下功能与限制描述的是 Windows 版，不应与原版功能列表混用。
+当前版本为 **0.2.0 Preview**。它已能在 Windows 上独立启动、打开图片、编辑图层并保存，但还没有完整复现原版或 Photoshop 的全部功能。以下功能与限制描述的是 Windows 版，不应与原版功能列表混用。
+
+## 0.2 新增
+
+- **设置 → 界面语言**：简体中文 / English，切换立即生效并自动保存；首次启动按系统语言选择。
+- **PSD 调整图层**：右侧选择色阶、曲线、曝光或反相并添加；选中已有调整层后点击“编辑调整图层”。修改已有调整层支持实时预览，取消不改变原参数。
+- **修图与蒙版**：画笔和橡皮新增 0–100% 硬度；图层组及调整图层可直接添加、修画、反相或移除蒙版，填充支持灰度。
+- **PSD 蒙版导入**：处理浓度和羽化，转换报告明确标示近似烘焙。
+
+![中英文设置](docs/windows/settings-zh.png)
 
 ## 下载与启动
 
-1. 打开 [Windows v0.1.0 预发布页面](https://github.com/huaixu40/Compositor-Windows/releases/tag/windows-v0.1.0)。
-2. 下载 `Compositor-Windows-0.1.0-win-x64.zip`，解压到可写目录。
+1. 打开 [Windows v0.2.0 预发布页面](https://github.com/huaixu40/Compositor-Windows/releases/tag/windows-v0.2.0)。
+2. 下载 `Compositor-Windows-0.2.0-win-x64.zip`，解压到可写目录。
 3. 双击解压目录中的 `Compositor-Windows.exe`。
 
 便携包自带运行时，无需安装 Node.js、Python 或 Xcode，正常编辑不需要联网。**请保留整个解压目录，不要只复制 exe。** 当前提供 Windows x64 构建；已在开发者的 Windows 电脑验证，尚未覆盖不同设备的兼容性测试。预览版未做代码签名。
@@ -31,9 +40,11 @@ Compositor 原版是基于 SwiftUI、AppKit、CoreGraphics / CoreImage / Metal �
 | 文件 | 打开 8-bit RGB PSD、PNG、JPEG、WebP；导出分层 PSD、PNG、JPEG |
 | 图层 | PSD 图层组、顺序、复制、删除、重命名、显隐、透明度、常见混合模式 |
 | 变换 | 移动、缩放、旋转、水平翻转 |
-| 蒙版 | 栅格蒙版导入/导出，黑白画笔编辑，启用/禁用 |
-| 修图工具 | 画笔、橡皮、仿制图章、矩形选区、填充、吸管 |
+| 蒙版 | 像素层、图层组与调整图层的栅格蒙版；软边修画、灰度填充、反相、移除及启用/禁用 |
+| 修图工具 | 支持硬度控制的软边画笔、橡皮、仿制图章、矩形选区、填充、吸管 |
 | 可回改滤镜 | 曝光/对比度、色阶、RGB 曲线、色相/饱和度、色彩平衡、模糊、锐化、黑白 |
+| PSD 调整层 | 创建和编辑色阶、曲线、曝光、反相；RGB 与单通道参数保留 |
+| 界面设置 | 简体中文 / English 即时切换，自动保存，下次启动恢复 |
 | 工作项目 | `.cwin` 保存图层原始像素、蒙版、变换及可编辑滤镜 |
 | 编辑保护 | 撤销/重做、未保存提醒、PSD 转换报告、源文件覆盖保护 |
 
@@ -42,7 +53,8 @@ Compositor 原版是基于 SwiftUI、AppKit、CoreGraphics / CoreImage / Metal �
 ## PSD 兼容性：请先了解
 
 - **支持读写**：普通像素图层、层级、偏移、显隐、透明度、常见混合模式、栅格蒙版。
-- **保留参数、近似预览**：PSD 的 Levels、Curves、Exposure、Invert 调整图层；当前没有这些导入调整层的参数编辑面板。
+- **保留参数、近似预览**：PSD 的 Levels、Curves、Exposure、Invert 调整图层，支持创建和编辑参数。色阶和曲线支持 RGB、红、绿、蓝通道；曲线采用输入/输出点编辑与分段线性预览。
+- **蒙版浓度与羽化**：导入时烘焙为有效栅格覆盖率，导出保留覆盖像素；不保留其原始滑块参数，羽化为近似预览（半径上限 256 px）。
 - **转换为缓存像素**：文字、智能对象、矢量内容，不保留原来的可编辑语义。
 - **提示后转换或丢弃**：复杂图层效果、剪贴关系、其他调整图层、Blend If 和部分特殊遮罩/画板。需要保留文件存储的原始观感时，可选择 `Open merged preview` 以单层打开。
 - **暂不支持**：CMYK、16/32-bit PSD、PSB、原版 `.comp` 项目、完整 ICC 色彩管理。
@@ -72,15 +84,15 @@ npm.cmd run package
 ```
 
 - `npm test` 在真实 Electron renderer 中执行测试，结果和界面截图写入 `windows/output/`。
-- `npm run package` 生成 `windows/release/Compositor-Windows/` 和 `windows/Start-Compositor.cmd`。
+- `npm run package` 生成 `windows/release/Compositor-Windows-0.2.0/` 和 `windows/Start-Compositor.cmd`。
 - 打包器拒绝覆盖已有同名发布目录，重新打包前请先归档旧目录。
 - 二进制与依赖目录不进入 Git 源码历史，便携包通过 GitHub Releases 提供。
 
 ## 验证记录
 
-2026-10-16，源码版和已打包的 Windows exe 均通过 **14 项测试**，覆盖 PSD 往返、图层组/蒙版/偏移、调整参数保留、两份公开 PSD 样本、项目保存、滤镜、撤销/重做、工具交互和实际 IPC 文件读写/源文件覆盖保护。
+2026-10-17，源码版和已打包的 Windows exe 均通过 **21 项测试**，覆盖中英文切换与设置持久化、PSD 调整参数编辑/往返、图层组与调整图层蒙版修画、蒙版浓度/羽化、软边画笔、两份公开 PSD 样本、项目保存、撤销/重做和实际 IPC 文件读写/源文件覆盖保护。
 
-[查看本地验证报告](docs/windows/validation-v0.1.0.json)。这些测试验证本版支持的表示和转换行为，不构成所有 PSD 文件或 Photoshop 完整兼容的保证。
+[查看本地验证报告](docs/windows/validation-v0.2.0.json)。这些测试验证本版支持的表示和转换行为，不构成所有 PSD 文件或 Photoshop 完整兼容的保证。
 
 ## 目录说明
 

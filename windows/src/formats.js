@@ -23,7 +23,8 @@ export function importPsd(bytes, name) {
         const w = Math.max(0, (rectangle.right || 0) - (rectangle.left || 0)), h = Math.max(0, (rectangle.bottom || 0) - (rectangle.top || 0));
         if (w && h) { canvas(w, h); total += w * h; }
       }
-      if (l.children) { total += structure.width * structure.height * (l.mask ? 2 : 0); inspect(l.children, depth + 1); }
+      if ((l.children || l.adjustment) && l.mask) total += structure.width * structure.height * 2;
+      if (l.children) inspect(l.children, depth + 1);
       if (l.blendMode && !BLENDS[l.blendMode] && l.blendMode !== 'pass through') note(`“${l.blendMode}” blend mode becomes Normal.`);
       if (l.text) note('Text becomes cached pixels; text will no longer be editable.');
       if (l.placedLayer) note('Smart object becomes cached pixels; embedded/linked source is not retained.');
@@ -33,7 +34,7 @@ export function importPsd(bytes, name) {
       if (l.adjustment && l.blendMode && l.blendMode !== 'normal') note('Adjustment layer blend mode becomes Normal.');
       if (l.clipping) note('Clipping relationship is removed in the editable copy.');
       if (l.fillOpacity !== undefined && l.fillOpacity < 1) note('Fill opacity is approximated by layer opacity.');
-      if (l.mask?.userMaskFeather || (l.mask?.userMaskDensity !== undefined && l.mask.userMaskDensity < 1)) note('Mask feather/density is not applied.');
+      if (l.mask?.userMaskFeather || (l.mask?.userMaskDensity !== undefined && l.mask.userMaskDensity < 1)) note('Mask feather/density is baked into the raster mask; preview is approximate.');
       if (l.children && l.mask && l.blendMode === 'pass through') note('Masked pass-through group becomes an isolated Normal group.');
       if (l.realMask || l.knockout || l.artboard || l.channelBlendingRestrictions?.length) note('Additional mask, knockout, artboard or channel restrictions are not retained.');
       if (l.blendingRanges) {
@@ -57,6 +58,18 @@ export function importPsd(bytes, name) {
         const m = n.mask, mask = canvas(group || n.adjustment ? psd.width : image.width, group || n.adjustment ? psd.height : image.height), ctx = mask.getContext('2d');
         const value = m.defaultColor ?? 255; ctx.fillStyle = `rgb(${value},${value},${value})`; ctx.fillRect(0, 0, mask.width, mask.height);
         if (m.canvas) ctx.drawImage(m.canvas, (m.left || 0) - (m.positionRelativeToLayer ? 0 : l.x), (m.top || 0) - (m.positionRelativeToLayer ? 0 : l.y));
+        // Bake effective mask coverage so export does not silently discard density/feather.
+        if (m.userMaskFeather > 0) {
+          const pad = Math.min(1024, Math.ceil(m.userMaskFeather * 3)), feathered = document.createElement('canvas');
+          feathered.width = mask.width + pad * 2; feathered.height = mask.height + pad * 2;
+          const fctx = feathered.getContext('2d'); fctx.fillStyle = `rgb(${value},${value},${value})`; fctx.fillRect(0, 0, feathered.width, feathered.height); fctx.drawImage(mask, pad, pad);
+          ctx.filter = `blur(${Math.min(256, m.userMaskFeather)}px)`; ctx.drawImage(feathered, -pad, -pad); ctx.filter = 'none';
+        }
+        if (m.userMaskDensity !== undefined && m.userMaskDensity < 1) {
+          const data = ctx.getImageData(0, 0, mask.width, mask.height), density = Math.max(0, m.userMaskDensity);
+          for (let i = 0; i < data.data.length; i += 4) for (let c = 0; c < 3; c++) data.data[i + c] = 255 - (255 - data.data[i + c]) * density;
+          ctx.putImageData(data, 0, 0);
+        }
         l.mask = mask; l.maskEnabled = !m.disabled;
         if (group && l.blend === 'pass through') l.blend = 'normal';
       }
@@ -141,7 +154,7 @@ export async function parseProject(bytes) {
   return { width: p.width, height: p.height, name: String(p.name).slice(0, 200), layers: await parse(p.layers) };
 }
 
-function validateAdjustment(a) {
+export function validateAdjustment(a) {
   if (!PSD_ADJUSTMENTS.includes(a.type)) throw new Error('Unsupported adjustment layer.');
   if (a.type === 'levels' || a.type === 'curves') for (const key of ['rgb', 'red', 'green', 'blue']) {
     if (!a[key]) continue;
@@ -153,7 +166,7 @@ function validateAdjustment(a) {
       if (!Number.isFinite(p.midtoneInput) || p.midtoneInput <= 0 || p.midtoneInput > 10 || p.shadowInput >= p.highlightInput) throw new Error('Invalid levels gamma.');
     }
   }
-  if (a.type === 'exposure') for (const key of ['exposure', 'offset', 'gamma']) if (a[key] !== undefined && (!Number.isFinite(a[key]) || Math.abs(a[key]) > 100)) throw new Error('Invalid exposure.');
+  if (a.type === 'exposure') { for (const key of ['exposure', 'offset', 'gamma']) if (a[key] !== undefined && (!Number.isFinite(a[key]) || Math.abs(a[key]) > 100)) throw new Error('Invalid exposure.'); if (a.gamma !== undefined && a.gamma <= 0) throw new Error('Invalid exposure.'); }
 }
 
 export { readPsd, writePsd };

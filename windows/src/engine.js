@@ -105,7 +105,7 @@ export function composite(doc, preview = null) {
     for (const l of [...layers].reverse()) {
       if (!l.visible) continue;
       if (l.adjustment) {
-        const original = ctx.getImageData(0, 0, doc.width, doc.height), changed = applyPsdAdjustment(destination, l.adjustment).getContext('2d').getImageData(0, 0, doc.width, doc.height);
+        const original = ctx.getImageData(0, 0, doc.width, doc.height), changed = applyPsdAdjustment(destination, preview?.id === l.id && preview.adjustment ? preview.adjustment : l.adjustment).getContext('2d').getImageData(0, 0, doc.width, doc.height);
         const mask = l.mask && l.maskEnabled ? l.mask.getContext('2d').getImageData(0, 0, doc.width, doc.height).data : null;
         const alpha = inherited * l.opacity;
         for (let i = 0; i < original.data.length; i += 4) { const weight = alpha * (mask ? mask[i] / 255 : 1); for (let c = 0; c < 3; c++) original.data[i + c] += (changed.data[i + c] - original.data[i + c]) * weight; }
@@ -126,6 +126,7 @@ export function composite(doc, preview = null) {
   draw(doc.layers, out); return out;
 }
 export function localPoint(l, p) {
+  if (!l.image) return { ...p };
   const cx = l.x + l.image.width * l.scale / 2, cy = l.y + l.image.height * l.scale / 2;
   const angle = -l.rotation * Math.PI / 180, dx = p.x - cx, dy = p.y - cy;
   return { x: (dx * Math.cos(angle) - dy * Math.sin(angle)) / l.scale * (l.flip ? -1 : 1) + l.image.width / 2, y: (dx * Math.sin(angle) + dy * Math.cos(angle)) / l.scale + l.image.height / 2 };
