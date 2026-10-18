@@ -6,7 +6,7 @@
 >
 > An unofficial Windows adaptation of [Compositor by Robbie Tilton](https://github.com/robbietilton/Compositor). The original macOS source and MIT copyright are preserved. The Windows client is a separate Electron/Canvas implementation, not an official release or a feature-complete port.
 
-[下载 Windows 预览版](https://github.com/huaixu40/Compositor-Windows/releases/tag/windows-v0.2.0) · [Windows 详细说明](windows/README-WINDOWS.md) · [原版 README](README.upstream.md) · [许可证](LICENSE)
+[下载 Windows 预览版](https://github.com/huaixu40/Compositor-Windows/releases/tag/windows-v0.3.0) · [Windows 详细说明](windows/README-WINDOWS.md) · [原版 README](README.upstream.md) · [许可证](LICENSE)
 
 ![Compositor Windows 编辑器预览](docs/windows/preview.png)
 
@@ -14,21 +14,20 @@
 
 Compositor 原版是基于 SwiftUI、AppKit、CoreGraphics / CoreImage / Metal 的 macOS 图像编辑器，不能直接在 Windows 上编译运行。本仓库保留原版工程，并在 `windows/` 中新增 Windows 客户端，优先实现 **PSD 图层编辑和常用修图工作流**。
 
-当前版本为 **0.2.0 Preview**。它已能在 Windows 上独立启动、打开图片、编辑图层并保存，但还没有完整复现原版或 Photoshop 的全部功能。以下功能与限制描述的是 Windows 版，不应与原版功能列表混用。
+当前版本为 **0.3.0 Preview**。它已能在 Windows 上独立启动、打开图片、编辑图层并保存，但还没有完整复现原版或 Photoshop 的全部功能。以下功能与限制描述的是 Windows 版，不应与原版功能列表混用。
 
-## 0.2 新增
+## 0.3 新增
 
-- **设置 → 界面语言**：简体中文 / English，切换立即生效并自动保存；首次启动按系统语言选择。
-- **PSD 调整图层**：右侧选择色阶、曲线、曝光或反相并添加；选中已有调整层后点击“编辑调整图层”。修改已有调整层支持实时预览，取消不改变原参数。
-- **修图与蒙版**：画笔和橡皮新增 0–100% 硬度；图层组及调整图层可直接添加、修画、反相或移除蒙版，填充支持灰度。
-- **PSD 蒙版导入**：处理浓度和羽化，转换报告明确标示近似烘焙。
-
-![中英文设置](docs/windows/settings-zh.png)
+- **真正的选区**：矩形、椭圆、套索、多边形套索、魔棒；相加、相减、相交、羽化、反选。绘画、填充和擦除受选区限制，可转蒙版，选区可撤销并保存到项目。
+- **鼠标移动**：画布拖动图层；选区内容可浮动移动、提交或取消。图层列表支持拖动排序和移入 / 移出图层组。
+- **系统剪贴板**：复制、剪切、粘贴和合并复制；外部软件获取 PNG，应用内整层复制保留属性和蒙版，可粘贴外部截图。
+- **右键与工具属性**：画布 / 图层右键菜单，按工具切换的属性栏；每种工具单独保留本次会话的参数。
+- **补齐工具**：裁剪、油漆桶、线性 / 径向渐变、抓手、缩放；保留中英文界面、PSD 调整层与软边修画。
 
 ## 下载与启动
 
-1. 打开 [Windows v0.2.0 预发布页面](https://github.com/huaixu40/Compositor-Windows/releases/tag/windows-v0.2.0)。
-2. 下载 `Compositor-Windows-0.2.0-win-x64.zip`，解压到可写目录。
+1. 打开 [Windows v0.3.0 预发布页面](https://github.com/huaixu40/Compositor-Windows/releases/tag/windows-v0.3.0)。
+2. 下载 `Compositor-Windows-0.3.0-win-x64.zip`，解压到可写目录。
 3. 双击解压目录中的 `Compositor-Windows.exe`。
 
 便携包自带运行时，无需安装 Node.js、Python 或 Xcode，正常编辑不需要联网。**请保留整个解压目录，不要只复制 exe。** 当前提供 Windows x64 构建；已在开发者的 Windows 电脑验证，尚未覆盖不同设备的兼容性测试。预览版未做代码签名。
@@ -38,14 +37,14 @@ Compositor 原版是基于 SwiftUI、AppKit、CoreGraphics / CoreImage / Metal �
 | 范围 | 当前功能 |
 |---|---|
 | 文件 | 打开 8-bit RGB PSD、PNG、JPEG、WebP；导出分层 PSD、PNG、JPEG |
-| 图层 | PSD 图层组、顺序、复制、删除、重命名、显隐、透明度、常见混合模式 |
+| 图层 | 创建图层组、鼠标排序及跨组拖放、复制、删除、重命名、显隐、透明度、常见混合模式 |
 | 变换 | 移动、缩放、旋转、水平翻转 |
 | 蒙版 | 像素层、图层组与调整图层的栅格蒙版；软边修画、灰度填充、反相、移除及启用/禁用 |
-| 修图工具 | 支持硬度控制的软边画笔、橡皮、仿制图章、矩形选区、填充、吸管 |
+| 修图工具 | 画笔、橡皮、仿制、五类选区、裁剪、油漆桶、渐变、吸管、抓手、缩放 |
 | 可回改滤镜 | 曝光/对比度、色阶、RGB 曲线、色相/饱和度、色彩平衡、模糊、锐化、黑白 |
 | PSD 调整层 | 创建和编辑色阶、曲线、曝光、反相；RGB 与单通道参数保留 |
 | 界面设置 | 简体中文 / English 即时切换，自动保存，下次启动恢复 |
-| 工作项目 | `.cwin` 保存图层原始像素、蒙版、变换及可编辑滤镜 |
+| 工作项目 | `.cwin` 保存图层原始像素、蒙版、变换、可编辑滤镜及选区 |
 | 编辑保护 | 撤销/重做、未保存提醒、PSD 转换报告、源文件覆盖保护 |
 
 建议先保存 `.cwin` 工作项目，再导出 PSD 副本。PSD 导出会把本客户端的滤镜和变换烘焙到各个像素图层；原始滤镜参数保留在 `.cwin` 中。
@@ -80,19 +79,20 @@ npm.cmd start
 
 ```powershell
 npm.cmd test
+npm.cmd run test:interaction
 npm.cmd run package
 ```
 
 - `npm test` 在真实 Electron renderer 中执行测试，结果和界面截图写入 `windows/output/`。
-- `npm run package` 生成 `windows/release/Compositor-Windows-0.2.0/` 和 `windows/Start-Compositor.cmd`。
+- `npm run package` 生成 `windows/release/Compositor-Windows-0.3.0/` 和 `windows/Start-Compositor.cmd`。
 - 打包器拒绝覆盖已有同名发布目录，重新打包前请先归档旧目录。
 - 二进制与依赖目录不进入 Git 源码历史，便携包通过 GitHub Releases 提供。
 
 ## 验证记录
 
-2026-10-17，源码版和已打包的 Windows exe 均通过 **21 项测试**，覆盖中英文切换与设置持久化、PSD 调整参数编辑/往返、图层组与调整图层蒙版修画、蒙版浓度/羽化、软边画笔、两份公开 PSD 样本、项目保存、撤销/重做和实际 IPC 文件读写/源文件覆盖保护。
+2026-10-18，0.3.0 源码版和便携 exe 均通过 **21 项回归检查 + 14 组真实交互测试**。交互测试覆盖实际鼠标框选、滚动后的坐标、图层拖放、浮动选区取消、右键、系统剪贴板、工具属性和保存重开。
 
-[查看本地验证报告](docs/windows/validation-v0.2.0.json)。这些测试验证本版支持的表示和转换行为，不构成所有 PSD 文件或 Photoshop 完整兼容的保证。
+[验证方法与未验收项](docs/windows/VALIDATION-0.3.md) · [源码回归](docs/windows/validation-source-v0.3.0.json) · [源码交互](docs/windows/interaction-source-v0.3.0.json) · [便携版回归](docs/windows/validation-v0.3.0.json) · [便携版交互](docs/windows/interaction-portable-v0.3.0.json)。中文输入法候选窗完整流程、1080p 30 FPS 和 Photoshop 实机互操作尚未验收；这些检查不构成所有 PSD 文件或完整 Photoshop 兼容保证。
 
 ## 目录说明
 

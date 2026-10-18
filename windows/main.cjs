@@ -5,13 +5,16 @@ const { createSettingsStore } = require('./settings.cjs');
 let settingsStore;
 const ui = (en, zh) => settingsStore?.get().language === 'zh-CN' ? zh : en;
 const selfTest = process.argv.includes('--self-test');
+const interactionTest = process.argv.includes('--interaction-test');
+const testMode = selfTest || interactionTest;
 app.setName('Compositor Windows');
 // Keep this adaptation's profile separate from the original app.
-app.setPath('userData', selfTest ? path.join(__dirname, 'output', 'test-profile') : path.join(app.getPath('appData'), 'Compositor-Windows'));
+app.setPath('userData', testMode ? path.join(__dirname, 'output', interactionTest ? 'interaction-profile' : 'test-profile') : path.join(app.getPath('appData'), 'Compositor-Windows'));
 let window, dirty = false;
 const sourcePaths = new Set();
 const filters = [{ name: 'Images and projects', extensions: ['psd', 'png', 'jpg', 'jpeg', 'webp', 'cwin'] }];
 function assertSender(event) { if (event.sender !== window.webContents) throw new Error('Unknown sender'); }
+require('./clipboard.cjs').registerClipboard(ipcMain, assertSender);
 ipcMain.handle('get-settings', event => { assertSender(event); return settingsStore.get(); });
 ipcMain.handle('update-settings', (event, value) => { assertSender(event); return settingsStore.save(value); });
 ipcMain.handle('open-file', async event => {
@@ -47,11 +50,11 @@ app.whenReady().then(async () => {
   settingsStore = createSettingsStore(path.join(app.getPath('userData'), 'settings.json'), app.getLocale().startsWith('zh') ? 'zh-CN' : 'en');
   await settingsStore.load();
   Menu.setApplicationMenu(null);
-  window = new BrowserWindow({ width: 1480, height: 960, minWidth: 1080, minHeight: 720, show: !selfTest, backgroundColor: '#17191d', title: 'Compositor Windows', webPreferences: { backgroundThrottling: !selfTest, preload: path.join(__dirname, 'preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true } });
+  window = new BrowserWindow({ width: 1480, height: 960, minWidth: 1080, minHeight: 720, show: !selfTest, backgroundColor: '#17191d', title: 'Compositor Windows', webPreferences: { backgroundThrottling: !testMode, preload: path.join(__dirname, 'preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true } });
   window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   window.webContents.on('will-navigate', event => event.preventDefault());
   window.on('close', event => {
-    if (dirty && !selfTest && dialog.showMessageBoxSync(window, { type: 'question', message: ui('Discard unsaved changes?', '放弃未保存的修改？'), detail: ui('Save a .cwin project to keep your editable filters and layers.', '保存 .cwin 项目可保留可编辑滤镜和图层。'), buttons: [ui('Keep editing', '继续编辑'), ui('Discard', '放弃修改')], defaultId: 0, cancelId: 0 }) === 0) event.preventDefault();
+    if (dirty && !testMode && dialog.showMessageBoxSync(window, { type: 'question', message: ui('Discard unsaved changes?', '放弃未保存的修改？'), detail: ui('Save a .cwin project to keep your editable filters and layers.', '保存 .cwin 项目可保留可编辑滤镜和图层。'), buttons: [ui('Keep editing', '继续编辑'), ui('Discard', '放弃修改')], defaultId: 0, cancelId: 0 }) === 0) event.preventDefault();
   });
   await window.loadFile(path.join(__dirname, 'index.html'), { query: { demo: process.argv.includes('--demo') ? '1' : '0' } });
   if (selfTest) {

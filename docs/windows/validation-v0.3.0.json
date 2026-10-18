@@ -1,0 +1,107 @@
+{
+  "timestamp": "2026-10-18T00:23:29.448Z",
+  "environment": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) CompositorWindows/0.3.0 Chrome/152.0.7977.167 Electron/44.8.0 Safari/537.36",
+  "passed": 21,
+  "failed": 0,
+  "results": [
+    {
+      "name": "PSD binary round trip: groups, offsets, visibility, blend and mask",
+      "passed": true
+    },
+    {
+      "name": "PSD rejects CMYK / 16 bit / PSB before decoding",
+      "passed": true
+    },
+    {
+      "name": "PSD unsupported clipping has explicit conversion report",
+      "passed": true
+    },
+    {
+      "name": "PSD disabled mask and transformed layer round trip",
+      "passed": true
+    },
+    {
+      "name": "PSD Levels adjustment and mask retain parameters across PSD and project saves",
+      "passed": true
+    },
+    {
+      "name": "External PSD: external-test.psd",
+      "passed": true
+    },
+    {
+      "name": "External PSD: external-text.psd",
+      "passed": true
+    },
+    {
+      "name": "Project round trip retains editable filters, mask and groups",
+      "passed": true
+    },
+    {
+      "name": "Project rejects unsupported version and invalid transform",
+      "passed": true
+    },
+    {
+      "name": "Exposure, levels, curves, grayscale, sharpen and alpha invariance",
+      "passed": true
+    },
+    {
+      "name": "Undo / redo restores image pixels and layer properties",
+      "passed": true
+    },
+    {
+      "name": "UI brush, selection fill, mask, undo and layer duplication",
+      "passed": true
+    },
+    {
+      "name": "Adjustment dialog preview cancels without mutation",
+      "passed": true
+    },
+    {
+      "name": "Language switches through Settings, preserves user content, validates IPC",
+      "passed": true
+    },
+    {
+      "name": "PSD native adjustment UI edits channels, cancels preview and round trips",
+      "passed": true
+    },
+    {
+      "name": "New PSD adjustment creation, curve validation and all supported types round trip",
+      "passed": true
+    },
+    {
+      "name": "Group and adjustment masks support painting, gray fill, invert, remove and undo",
+      "passed": true
+    },
+    {
+      "name": "Soft brush and eraser have graded edges and preserve selection bounds",
+      "passed": true
+    },
+    {
+      "name": "PSD mask density and feather bake effective coverage and survive export",
+      "passed": true
+    },
+    {
+      "name": "Desktop IPC file save / reopen / source overwrite protection",
+      "passed": true
+    },
+    {
+      "name": "Language persists when settings store is recreated",
+      "passed": true
+    }
+  ],
+  "conversionReports": [
+    {
+      "name": "external-test.psd",
+      "notes": [
+        "Layer 2: Layer styles are not rendered or retained in the editable copy."
+      ]
+    },
+    {
+      "name": "external-text.psd",
+      "notes": [
+        "a: Text becomes cached pixels; text will no longer be editable.",
+        "a: Layer styles are not rendered or retained in the editable copy."
+      ]
+    }
+  ]
+}

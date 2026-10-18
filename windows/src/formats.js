@@ -1,5 +1,6 @@
 import { readPsd, writePsd } from 'ag-psd';
 import { canvas, layer, BLENDS, PSD_ADJUSTMENTS, composite, bakedLayer } from './engine.js';
+import { selectionFromMask, normalizedSelection } from './selection.js';
 
 export function checkPsd(bytes) {
   if (bytes.byteLength < 26) throw new Error('Truncated PSD header.');
@@ -105,7 +106,7 @@ export function exportPsd(doc) {
 }
 export function serializeProject(doc) {
   const serialize = l => ({ ...l, image: l.image?.toDataURL('image/png') || null, mask: l.mask?.toDataURL('image/png') || null, children: l.children?.map(serialize) });
-  return new TextEncoder().encode(JSON.stringify({ format: 'com.compositor.windows', version: 1, width: doc.width, height: doc.height, name: doc.name, layers: doc.layers.map(serialize) }));
+  return new TextEncoder().encode(JSON.stringify({ format: 'com.compositor.windows', version: 1, width: doc.width, height: doc.height, name: doc.name, layers: doc.layers.map(serialize), selection:normalizedSelection(doc._selection,doc.width,doc.height)?.mask.toDataURL('image/png') }));
 }
 async function decodePng(url) {
   if (!/^data:image\/png;base64,/.test(url) || url.length > 100_000_000) throw new Error('Invalid project image.');
@@ -151,7 +152,9 @@ export async function parseProject(bytes) {
     }
     return layers;
   }
-  return { width: p.width, height: p.height, name: String(p.name).slice(0, 200), layers: await parse(p.layers) };
+  const result={ width: p.width, height: p.height, name: String(p.name).slice(0, 200), layers: await parse(p.layers) };
+  if(p.selection){const mask=await decodePng(p.selection);if(mask.width!==p.width||mask.height!==p.height)throw new Error('Invalid selection dimensions.');result._selection=selectionFromMask(mask);}
+  return result;
 }
 
 export function validateAdjustment(a) {

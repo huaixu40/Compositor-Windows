@@ -1,3 +1,4 @@
+import { installInteractions } from './interactions.js';
 import { t, message as translateMessage, bindStaticUI, setLanguage, getLanguage } from './i18n.js';
 import { defaultAdjustment, editAdjustment } from './psd-editor.js';
 import { canvas, copy, layer, newDocument, walk, findLayer, siblings, cloneLayer, History, invalidate, composite, localPoint, demoDocument, BLENDS, curveLut, applyFilter, pixelBytes } from './engine.js';
@@ -5,16 +6,17 @@ import { importPsd, exportPsd, serializeProject, parseProject, loadImage, checkP
 const $ = id => document.getElementById(id);
 let doc = newDocument(1600, 1000), active = doc.layers[0].id, history = new History(), dirty = false, welcome = true, zoom = .5, tool = 'move', target = 'image', selection = null, preview = null, cloneSource = null, drag = null, busy = false;
 let toastTimer;
+let interactions;
 bindStaticUI();
 function toast(message) { $('toast').textContent = translateMessage(message); $('toast').style.display = 'block'; clearTimeout(toastTimer); toastTimer = setTimeout(() => $('toast').style.display = 'none', 6000); }
 function status(message) { $('status').textContent = translateMessage(message); }
 function selected() { return findLayer(doc, active); }
 function markDirty() { dirty = true; window.desktop?.dirty(true); }
-function checkpoint() { history.push(doc); markDirty(); }
+function checkpoint() { doc._selection=selection; history.push(doc); markDirty(); }
 function edit(action) { if (busy) return; try { checkpoint(); action(); if (welcome) { welcome = false; $('welcome').style.display = 'none'; $('canvas-wrap').style.display = 'block'; fit(); } render(); } catch (error) { toast(error.message); } }
 function editable() { const l = selected(); if (!l?.image) { toast('Select a pixel layer first.'); return null; } return l; }
 function discard() { return !dirty || confirm(t('Discard unsaved changes? Save a .cwin project to keep your editable layers and filters.')); }
-function adopt(next, modified = false) { doc = next; history = new History(); active = doc.layers[0]?.id; dirty = modified; window.desktop?.dirty(dirty); selection = null; target = 'image'; preview = null; cloneSource = null; welcome = false; $('welcome').style.display = 'none'; $('canvas-wrap').style.display = 'block'; fit(); render(); }
+function adopt(next, modified = false) { interactions?.reset(); doc = next; history = new History(); active = doc.layers[0]?.id; dirty = modified; window.desktop?.dirty(dirty); selection = doc._selection || null; target = 'image'; preview = null; cloneSource = null; welcome = false; $('welcome').style.display = 'none'; $('canvas-wrap').style.display = 'block'; fit(); render(); }
 function fit() { const box = $('viewport'); zoom = Math.min(1, (box.clientWidth - 90) / doc.width, (box.clientHeight - 90) / doc.height); zoom = Math.max(.03, zoom); sizeView(); }
 function sizeView() { const wrap = $('canvas-wrap'); wrap.style.width = `${doc.width * zoom}px`; wrap.style.height = `${doc.height * zoom}px`; for (const id of ['canvas', 'overlay']) { $(id).style.width = `${doc.width * zoom}px`; $(id).style.height = `${doc.height * zoom}px`; } $('zoom-value').textContent = `${Math.round(zoom * 100)}%`; }
 function renderPixels() {
@@ -25,7 +27,8 @@ function drawOverlay() {
   const ctx = $('overlay').getContext('2d'); ctx.clearRect(0, 0, doc.width, doc.height); ctx.lineWidth = 1 / zoom;
   const l = selected();
   if (l?.image && tool === 'move') { ctx.save(); ctx.strokeStyle = '#d4ec98'; ctx.translate(l.x + l.image.width * l.scale / 2, l.y + l.image.height * l.scale / 2); ctx.rotate(l.rotation * Math.PI / 180); ctx.strokeRect(-l.image.width * l.scale / 2, -l.image.height * l.scale / 2, l.image.width * l.scale, l.image.height * l.scale); ctx.restore(); }
-  if (selection) { ctx.strokeStyle = '#fff'; ctx.setLineDash([5 / zoom, 5 / zoom]); ctx.strokeRect(selection.x, selection.y, selection.w, selection.h); ctx.lineDashOffset = 5 / zoom; ctx.strokeStyle = '#111'; ctx.strokeRect(selection.x, selection.y, selection.w, selection.h); ctx.setLineDash([]); }
+  if (interactions) interactions.drawOverlay(ctx);
+  else if (selection) { ctx.strokeStyle = '#fff'; ctx.setLineDash([5 / zoom, 5 / zoom]); ctx.strokeRect(selection.x, selection.y, selection.w, selection.h); ctx.lineDashOffset = 5 / zoom; ctx.strokeStyle = '#111'; ctx.strokeRect(selection.x, selection.y, selection.w, selection.h); ctx.setLineDash([]); }
 }
 function render() {
   renderPixels(); sizeView(); renderLayers(); renderProperties(); updateTool();
@@ -46,6 +49,7 @@ function renderLayers() {
     if (l.filters.length) { const fx = document.createElement('span'); fx.className = 'kind'; fx.textContent = 'fx'; row.append(fx); }
     row.onclick = () => { active = l.id; target = 'image'; render(); }; root.append(row);
   });
+  interactions?.layerRows();
 }
 function renderProperties() {
   const l = selected(); $('edit-adjustment').disabled = !l?.adjustment; $('invert-mask').disabled = $('remove-mask').disabled = !l?.mask; $('layer-name').value = l?.name || ''; $('layer-x').value = Math.round(l?.x || 0); $('layer-y').value = Math.round(l?.y || 0); $('layer-scale').value = Math.round((l?.scale || 1) * 100); $('layer-rotation').value = l?.rotation || 0;
@@ -128,6 +132,7 @@ function adjust(kind, index = -1) {
   $('adjust-dialog').onclose = () => { preview = null; if ($('adjust-dialog').returnValue === 'apply') { if (kind === 'levels' && filter.black >= filter.white) { toast('Black point must be below white point.'); render(); return; } edit(() => { if (index < 0) l.filters.push(filter); else l.filters[index] = filter; }); } else render(); };
 }
 function updateTool() {
+  if (interactions) { interactions.refresh(); drawOverlay(); return; }
   document.querySelectorAll('[data-tool]').forEach(button => button.classList.toggle('active', button.dataset.tool === tool));
   $('tool-name').textContent = t(({ move: 'Move', brush: 'Brush', erase: 'Eraser', clone: 'Clone', select: 'Selection', picker: 'Eyedropper' })[tool]);
   $('tool-hint').textContent = t(tool === 'clone' ? 'Alt-click to set source. Paint to clone pixels.' : target === 'mask' ? 'Mask: black hides, white reveals. Eraser reveals.' : 'B brush · E eraser · S clone · M select · V move');
@@ -229,6 +234,11 @@ $('edit-adjustment').onclick = () => {
   const l = selected(); if (busy || !l?.adjustment) return;
   editAdjustment(l.adjustment, value => edit(() => l.adjustment = value), value => { preview = value ? { id:l.id, adjustment:value } : null; renderPixels(); });
 };
+interactions = installInteractions({
+  get doc(){return doc;},set doc(v){doc=v;},get active(){return active;},set active(v){active=v;},get selection(){return selection;},set selection(v){selection=v;doc._selection=v;},get target(){return target;},set target(v){target=v;},get tool(){return tool;},set tool(v){tool=v;},get zoom(){return zoom;},set zoom(v){zoom=v;},get busy(){return busy;},get history(){return history;},checkpoint,render,renderPixels,drawOverlay,fit,sizeView,toast,
+  reveal(){if(welcome){welcome=false;$('welcome').style.display='none';$('canvas-wrap').style.display='block';fit();}}
+});
+window.editorTest = { interactions, adopt, newDocument, demoDocument, selected, get doc(){return doc;}, get selection(){return selection;}, get active(){return active;}, get history(){return history;}, get zoom(){return zoom;} };
 render();
 if (new URLSearchParams(location.search).get('demo') === '1') adopt(demoDocument());
 
@@ -252,7 +262,7 @@ window.runSelfTest = async (externalFixtures = []) => {
   await test('Project rejects unsupported version and invalid transform', async () => { for (const mutation of [p => p.version = 99, p => p.layers[0].scale = -1]) { const p = JSON.parse(new TextDecoder().decode(serializeProject(fixture))); mutation(p); let rejected = false; try { await parseProject(new TextEncoder().encode(JSON.stringify(p))); } catch { rejected = true; } assert(rejected, 'Malformed project accepted'); } });
   await test('Exposure, levels, curves, grayscale, sharpen and alpha invariance', () => { const c = solid(4, 4, 'rgba(80,120,160,0.5)'); const a = pixel(c); const e = pixel(applyFilter(c, { kind: 'exposure', exposure: 1, contrast: 0 })); assert(e[0] > a[0] * 1.8 && e[3] === a[3], 'Exposure/alpha incorrect'); const bw = pixel(applyFilter(c, { kind: 'bw' })); assert(Math.abs(bw[0] - bw[2]) <= 1, 'Not grayscale'); equalPixels(c, applyFilter(c, { kind: 'levels', black: 0, white: 255, gamma: 1 })); equalPixels(c, applyFilter(c, { kind: 'curves', shadows: 64, midtones: 128, highlights: 192 })); equalPixels(c, applyFilter(c, { kind: 'sharpen', amount: 0 })); });
   await test('Undo / redo restores image pixels and layer properties', () => { const h = new History(), d = newDocument(4, 4); h.push(d); d.layers[0].image.getContext('2d').fillRect(0, 0, 4, 4); d.layers[0].name = 'Changed'; const previous = h.undo(d); assert(pixel(previous.layers[0].image)[3] === 0, 'Undo pixels'); assert(previous.layers[0].name === 'Layer 1', 'Undo metadata'); assert(h.redo(previous).layers[0].name === 'Changed', 'Redo'); });
-  await test('UI brush, selection fill, mask, undo and layer duplication', () => { adopt(newDocument(80, 60)); tool = 'brush'; $('color').value = '#ff0000'; $('brush-size').value = '10'; const rect = $('overlay').getBoundingClientRect(), x = rect.left + 20 * zoom, y = rect.top + 20 * zoom; $('overlay').dispatchEvent(new PointerEvent('pointerdown', { clientX: x, clientY: y, button: 0, pointerId: 1 })); endDrag(); assert(pixel(selected().image, 20, 20)[0] === 255, 'Brush did not paint'); selection = { x: 0, y: 0, w: 5, h: 5 }; $('fill').click(); assert(pixel(selected().image, 0, 0)[3] === 255, 'Fill'); $('add-mask').click(); assert(selected().mask, 'Mask missing'); $('duplicate').click(); assert(doc.layers.length === 2, 'Duplicate'); $('undo').click(); assert(doc.layers.length === 1, 'UI undo'); });
+  await test('UI brush, selection fill, mask, undo and layer duplication', () => { adopt(newDocument(80, 60)); interactions.chooseTool('brush'); interactions.options.brush.color='#ff0000'; interactions.options.brush.size=10; $('color').value = '#ff0000'; $('brush-size').value = '10'; const rect = $('overlay').getBoundingClientRect(), x = rect.left + 20 * zoom, y = rect.top + 20 * zoom; $('overlay').dispatchEvent(new PointerEvent('pointerdown', { clientX: x, clientY: y, button: 0, pointerId: 1 })); interactions.finishGesture(); assert(pixel(selected().image, 20, 20)[0] === 255, 'Brush did not paint'); selection = { x: 0, y: 0, w: 5, h: 5 }; $('fill').click(); assert(pixel(selected().image, 0, 0)[3] === 255, 'Fill'); $('add-mask').click(); assert(selected().mask, 'Mask missing'); $('duplicate').click(); assert(doc.layers.length === 2, 'Duplicate'); $('undo').click(); assert(doc.layers.length === 1, 'UI undo'); });
   await test('Adjustment dialog preview cancels without mutation', async () => { adopt(newDocument(20, 20)); adjust('exposure'); const input = $('adjust-controls').querySelector('input'); input.value = '2'; input.dispatchEvent(new Event('input')); assert(selected().filters.length === 0, 'Preview mutated filters'); await closed('adjust-dialog', () => $('adjust-dialog').close('cancel')); assert(preview === null, 'Filter preview not cleared'); });
 
   await new Promise(resolve => setTimeout(resolve, 30));
@@ -303,10 +313,10 @@ window.runSelfTest = async (externalFixtures = []) => {
     for (const options of [{children:[layer('Child',solid(32,32,'#cc9988'))],blend:'normal'},{adjustment:defaultAdjustment('invert')}]) {
       adopt({width:32,height:32,name:'Mask target',layers:[layer('Target',null,options),layer('Base',solid(32,32,'#445566'))]});
       $('add-mask').click(); assert(selected().mask.width===32 && target==='mask','Missing full-canvas mask');
-      $('color').value='#808080'; $('fill').click(); assert(Math.abs(pixel(selected().mask)[0]-128)<=1,'Gray fill became binary');
+      interactions.options.brush.color='#808080'; $('color').value='#808080'; $('fill').click(); assert(Math.abs(pixel(selected().mask)[0]-128)<=1,'Gray fill became binary');
       $('invert-mask').click(); assert(Math.abs(pixel(selected().mask)[0]-127)<=1,'Mask invert failed');
-      tool='brush'; $('color').value='#000000'; $('brush-size').value='8'; const rect=$('overlay').getBoundingClientRect();
-      $('overlay').dispatchEvent(new PointerEvent('pointerdown',{clientX:rect.left+16*zoom,clientY:rect.top+16*zoom,button:0,pointerId:1})); endDrag(); assert(pixel(selected().mask,16,16)[0]===0,'Non-pixel mask brush failed');
+      interactions.chooseTool('brush'); interactions.options.brush.color='#000000'; $('color').value='#000000'; $('brush-size').value='8'; const rect=$('overlay').getBoundingClientRect();
+      $('overlay').dispatchEvent(new PointerEvent('pointerdown',{clientX:rect.left+16*zoom,clientY:rect.top+16*zoom,button:0,pointerId:1})); interactions.finishGesture(); assert(pixel(selected().mask,16,16)[0]===0,'Non-pixel mask brush failed');
       const reopened=importPsd(exportPsd(doc),'mask.psd').doc; equalPixels(composite(doc),composite(reopened),2);
       $('remove-mask').click(); assert(!selected().mask && target==='image','Remove mask did not reset target'); $('undo').click(); assert(selected().mask,'Undo did not restore mask');
     }

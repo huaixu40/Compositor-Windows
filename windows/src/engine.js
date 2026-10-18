@@ -12,7 +12,7 @@ export function findLayer(doc, id) { let result; walk(doc.layers, l => { if (l.i
 export function siblings(doc, id, layers = doc.layers) { if (layers.some(l => l.id === id)) return layers; for (const l of layers) if (l.children) { const found = siblings(doc, id, l.children); if (found) return found; } }
 export function cloneLayer(l) { return { ...l, image: copy(l.image), mask: copy(l.mask), filters: structuredClone(l.filters), adjustment: l.adjustment ? structuredClone(l.adjustment) : undefined, children: l.children?.map(cloneLayer) }; }
 export function cloneDocument(doc) { return { ...doc, layers: doc.layers.map(cloneLayer) }; }
-export function pixelBytes(doc) { let bytes = 0; walk(doc.layers, l => { for (const c of [l.image, l.mask]) if (c) bytes += c.width * c.height * 4; }); return bytes; }
+export function pixelBytes(doc) { let bytes = doc._selection?.mask ? doc._selection.mask.width * doc._selection.mask.height * 4 : 0; walk(doc.layers, l => { for (const c of [l.image, l.mask]) if (c) bytes += c.width * c.height * 4; }); return bytes; }
 export class History {
   constructor() { this.past = []; this.future = []; }
   push(doc) { this.past.push(cloneDocument(doc)); this.future = []; while (this.past.length > 20 || (this.past.length > 1 && this.past.reduce((n, d) => n + pixelBytes(d), 0) > 128 * 1024 * 1024)) this.past.shift(); }

@@ -1,7 +1,8 @@
 // Translate UI bindings only. Document titles, layer names and pixel content are user data.
 let language = 'en';
 const zh = {
-  'WINDOWS · PREVIEW': 'WINDOWS · 预览版', 'Compositor Windows · 0.2 preview': 'Compositor Windows · 0.2 预览版',
+  "M rectangle / Shift+M ellipse · L lasso / Shift+L polygon · W wand · C crop · G gradient / Shift+G bucket · H hand · Z zoom. Ctrl+C copy · Ctrl+Shift+C merged copy · Ctrl+X cut · Ctrl+V paste · Ctrl+A select all · Ctrl+Shift+D invert selection. Right-click canvas or layers for actions. Drag layer rows to reorder or enter groups. Move selection pixels: Enter apply, Esc cancel.": "M 矩形 / Shift+M 椭圆 · L 套索 / Shift+L 多边形 · W 魔棒 · C 裁剪 · G 渐变 / Shift+G 油漆桶 · H 抓手 · Z 缩放。Ctrl+C 复制 · Ctrl+Shift+C 合并复制 · Ctrl+X 剪切 · Ctrl+V 粘贴 · Ctrl+A 全选 · Ctrl+Shift+D 反选。右键画布或图层显示操作，拖动图层行可排序或编组。移动选区内容：Enter 提交，Esc 取消。",
+  'WINDOWS · PREVIEW': 'WINDOWS · 预览版', 'Compositor Windows · 0.3 preview': 'Compositor Windows · 0.3 预览版',
   'Settings': '设置', 'Language': '语言', 'Interface language': '界面语言', 'Saved automatically. Changes take effect immediately.': '自动保存，切换后立即生效。',
   'New': '新建', 'Open…': '打开…', 'Add image…': '添加图片…', 'Save project': '保存项目', 'Export PSD': '导出 PSD',
   'Compatibility and shortcuts': '兼容性与快捷键', '↶ Undo': '↶ 撤销', '↷ Redo': '↷ 重做', 'Size': '大小', 'Flow': '流量', 'Hardness': '硬度', 'Brush color': '画笔颜色',
