@@ -1,0 +1,63 @@
+{
+  "pointerMoves": 189,
+  "renderedUpdates": 189,
+  "updatesPerSecond": 71.87951623928332,
+  "p95SubmissionMs": 0.5,
+  "p95GpuCompletionMs": 4.5999999940395355,
+  "backend": "webgpu",
+  "viewport": {
+    "width": 1950,
+    "height": 1092,
+    "dpr": 1.5
+  },
+  "document": [
+    1920,
+    1080
+  ],
+  "layers": 5,
+  "frames": 631,
+  "meanFrameMs": 4.167353407290007,
+  "p95FrameMs": 4.2999999999999545,
+  "maxFrameMs": 4.7999999999999545,
+  "meanFPS": 239.96045025859496,
+  "lastSubmissionMs": 0.19999999552965164,
+  "estimatedEditorTextureBytes": 26058752,
+  "passes30FPS": true,
+  "timestamp": "2026-10-27T12:03:02.569Z",
+  "processMemory": [
+    {
+      "type": "Browser",
+      "memory": {
+        "workingSetSize": 103108,
+        "peakWorkingSetSize": 104124,
+        "privateBytes": 72308
+      }
+    },
+    {
+      "type": "GPU",
+      "memory": {
+        "workingSetSize": 229188,
+        "peakWorkingSetSize": 230724,
+        "privateBytes": 522200
+      }
+    },
+    {
+      "type": "Utility",
+      "memory": {
+        "workingSetSize": 46604,
+        "peakWorkingSetSize": 46604,
+        "privateBytes": 12012
+      }
+    },
+    {
+      "type": "Tab",
+      "memory": {
+        "workingSetSize": 137648,
+        "peakWorkingSetSize": 137648,
+        "privateBytes": 72316
+      }
+    }
+  ],
+  "systemGpuSnapshot": "NVIDIA GeForce RTX 4060 Laptop GPU, 1403 MiB, 8188 MiB",
+  "note": "Changed GPU submissions and RAF intervals during actual mouse dragging. RAF is display cadence, not render throughput; GPU memory snapshot includes all applications. Editor texture bytes are an allocation estimate, not driver VRAM attribution."
+}

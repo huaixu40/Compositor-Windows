@@ -1,19 +1,22 @@
 {
   "name": "compositor-windows",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Unofficial Windows adaptation of Compositor with layered PSD editing",
   "private": true,
   "main": "main.cjs",
   "license": "MIT",
   "scripts": {
-    "build": "esbuild src/app.js --bundle --outfile=dist/app.js",
+    "build": "node scripts/build.cjs",
     "start": "npm run build && electron .",
     "test": "npm run build && electron . --self-test",
     "package": "npm run build && node scripts/package.cjs",
-    "test:interaction": "npm run build && node test/interactions.cjs"
+    "test:interaction": "npm run build && node test/interactions.cjs",
+    "test:render": "npm run build && node test/render-project.cjs",
+    "test:performance": "npm run build && node test/benchmark.cjs"
   },
   "dependencies": {
-    "ag-psd": "31.0.3"
+    "ag-psd": "31.0.3",
+    "fflate": "0.8.3"
   },
   "devDependencies": {
     "electron": "44.8.0",

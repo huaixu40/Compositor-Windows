@@ -6,7 +6,7 @@ const root = path.resolve(__dirname, '..'), output = path.join(root, 'output', '
 async function main() {
   await fs.mkdir(output, {recursive:true});
   const app = await electron.launch({args:[root,'--interaction-test'],executablePath:process.env.COMPOSITOR_EXE || require('electron'),timeout:30000});
-  const page = await app.firstWindow(); await page.evaluate(()=>window.appReady); await page.context().tracing.start({screenshots:true,snapshots:true});
+  const page = await app.firstWindow(); await page.waitForFunction(()=>window.appReady); await page.evaluate(()=>window.appReady); await page.context().tracing.start({screenshots:true,snapshots:true});
   const errors=[],results=[]; page.on('pageerror',error=>errors.push(error.message));
   await app.evaluate(async({clipboard})=>{globalThis.__clipboardSnapshot=[];for(const item of await clipboard.read()){const values={};for(const type of item.types)values[type]=await item.getType(type);if(Object.keys(values).length)globalThis.__clipboardSnapshot.push(values);}});
   page.setDefaultTimeout(6000);

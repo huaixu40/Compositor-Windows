@@ -1,6 +1,8 @@
 import { readPsd, writePsd } from 'ag-psd';
 import { canvas, layer, BLENDS, PSD_ADJUSTMENTS, composite, bakedLayer } from './engine.js';
 import { selectionFromMask, normalizedSelection } from './selection.js';
+import { parseProjectV2 } from './project-v2.js';
+export { serializeProjectV2 } from './project-v2.js';
 
 export function checkPsd(bytes) {
   if (bytes.byteLength < 26) throw new Error('Truncated PSD header.');
@@ -61,7 +63,7 @@ export function importPsd(bytes, name) {
         if (m.canvas) ctx.drawImage(m.canvas, (m.left || 0) - (m.positionRelativeToLayer ? 0 : l.x), (m.top || 0) - (m.positionRelativeToLayer ? 0 : l.y));
         // Bake effective mask coverage so export does not silently discard density/feather.
         if (m.userMaskFeather > 0) {
-          const pad = Math.min(1024, Math.ceil(m.userMaskFeather * 3)), feathered = document.createElement('canvas');
+          const pad = Math.min(1024, Math.ceil(m.userMaskFeather * 3)), feathered = typeof document==='undefined'?new OffscreenCanvas(1,1):document.createElement('canvas');
           feathered.width = mask.width + pad * 2; feathered.height = mask.height + pad * 2;
           const fctx = feathered.getContext('2d'); fctx.fillStyle = `rgb(${value},${value},${value})`; fctx.fillRect(0, 0, feathered.width, feathered.height); fctx.drawImage(mask, pad, pad);
           ctx.filter = `blur(${Math.min(256, m.userMaskFeather)}px)`; ctx.drawImage(feathered, -pad, -pad); ctx.filter = 'none';
@@ -124,7 +126,10 @@ const filterFields = {
   curves: { shadows: [0, 255], midtones: [0, 255], highlights: [0, 255] }, hsl: { hue: [-180, 180], saturation: [-100, 100], lightness: [-100, 100] },
   balance: { red: [-100, 100], green: [-100, 100], blue: [-100, 100] }, blur: { radius: [0, 50] }, sharpen: { amount: [0, 200] }, bw: {}
 };
-export async function parseProject(bytes) {
+export async function parseProject(bytes,options) {
+  return bytes[0]===0x50&&bytes[1]===0x4b?parseProjectV2(bytes,parseLegacyProject,options):parseLegacyProject(bytes);
+}
+export async function parseLegacyProject(bytes,{decodeImage=decodePng}={}) {
   const p = JSON.parse(new TextDecoder().decode(bytes));
   if (p.format !== 'com.compositor.windows' || p.version !== 1) throw new Error('Unsupported project format/version.');
   canvas(p.width, p.height);
@@ -139,7 +144,7 @@ export async function parseProject(bytes) {
       if (!BLENDS[n.blend] && n.blend !== 'pass through') throw new Error('Unsupported blend mode.');
       if (!Array.isArray(n.filters) || n.filters.length > 30) throw new Error('Invalid filters.');
       for (const f of n.filters) { if (!filterFields[f.kind]) throw new Error('Unknown filter.'); for (const [key, range] of Object.entries(filterFields[f.kind])) if (!Number.isFinite(f[key]) || f[key] < range[0] || f[key] > range[1]) throw new Error('Invalid filter parameter.'); }
-      const image = n.image ? await decodePng(n.image) : null, mask = n.mask ? await decodePng(n.mask) : null;
+      const image = n.image ? await decodeImage(n.image) : null, mask = n.mask ? await decodeImage(n.mask) : null;
       pixels += (image ? image.width * image.height : 0) + (mask ? mask.width * mask.height : 0);
       if (pixels > 64_000_000) throw new Error('Project exceeds 64 MP pixel budget.');
       if (mask && (mask.width !== (image?.width || p.width) || mask.height !== (image?.height || p.height))) throw new Error('Mask dimensions do not match layer.');

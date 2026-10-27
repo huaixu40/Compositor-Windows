@@ -1,27 +1,31 @@
+import { readPsdJob, exportJob } from './jobs/files.js';
+import { Renderer } from './render/renderer.js';
 import { installInteractions } from './interactions.js';
 import { t, message as translateMessage, bindStaticUI, setLanguage, getLanguage } from './i18n.js';
 import { defaultAdjustment, editAdjustment } from './psd-editor.js';
 import { canvas, copy, layer, newDocument, walk, findLayer, siblings, cloneLayer, History, invalidate, composite, localPoint, demoDocument, BLENDS, curveLut, applyFilter, pixelBytes } from './engine.js';
-import { importPsd, exportPsd, serializeProject, parseProject, loadImage, checkPsd, readPsd, writePsd } from './formats.js';
+import { importPsd, exportPsd, serializeProject, serializeProjectV2, parseProject, loadImage, checkPsd, readPsd, writePsd } from './formats.js';
 const $ = id => document.getElementById(id);
 let doc = newDocument(1600, 1000), active = doc.layers[0].id, history = new History(), dirty = false, welcome = true, zoom = .5, tool = 'move', target = 'image', selection = null, preview = null, cloneSource = null, drag = null, busy = false;
 let toastTimer;
 let interactions;
+let revision=0;
+const renderer=new Renderer($('canvas'),$('gpu-canvas'),r=>{$('render-status').textContent=t(r.backend==='webgpu'?'GPU acceleration active':'Compatibility renderer active');});
 bindStaticUI();
 function toast(message) { $('toast').textContent = translateMessage(message); $('toast').style.display = 'block'; clearTimeout(toastTimer); toastTimer = setTimeout(() => $('toast').style.display = 'none', 6000); }
 function status(message) { $('status').textContent = translateMessage(message); }
 function selected() { return findLayer(doc, active); }
-function markDirty() { dirty = true; window.desktop?.dirty(true); }
+function markDirty() { revision++; dirty = true; window.desktop?.dirty(true); }
 function checkpoint() { doc._selection=selection; history.push(doc); markDirty(); }
 function edit(action) { if (busy) return; try { checkpoint(); action(); if (welcome) { welcome = false; $('welcome').style.display = 'none'; $('canvas-wrap').style.display = 'block'; fit(); } render(); } catch (error) { toast(error.message); } }
 function editable() { const l = selected(); if (!l?.image) { toast('Select a pixel layer first.'); return null; } return l; }
 function discard() { return !dirty || confirm(t('Discard unsaved changes? Save a .cwin project to keep your editable layers and filters.')); }
-function adopt(next, modified = false) { interactions?.reset(); doc = next; history = new History(); active = doc.layers[0]?.id; dirty = modified; window.desktop?.dirty(dirty); selection = doc._selection || null; target = 'image'; preview = null; cloneSource = null; welcome = false; $('welcome').style.display = 'none'; $('canvas-wrap').style.display = 'block'; fit(); render(); }
+function adopt(next, modified = false) { interactions?.reset(); revision++; doc = next; history = new History(); active = doc.layers[0]?.id; dirty = modified; window.desktop?.dirty(dirty); selection = doc._selection || null; target = 'image'; preview = null; cloneSource = null; welcome = false; $('welcome').style.display = 'none'; $('canvas-wrap').style.display = 'block'; fit(); render(); }
 function fit() { const box = $('viewport'); zoom = Math.min(1, (box.clientWidth - 90) / doc.width, (box.clientHeight - 90) / doc.height); zoom = Math.max(.03, zoom); sizeView(); }
-function sizeView() { const wrap = $('canvas-wrap'); wrap.style.width = `${doc.width * zoom}px`; wrap.style.height = `${doc.height * zoom}px`; for (const id of ['canvas', 'overlay']) { $(id).style.width = `${doc.width * zoom}px`; $(id).style.height = `${doc.height * zoom}px`; } $('zoom-value').textContent = `${Math.round(zoom * 100)}%`; }
+function sizeView() { const wrap = $('canvas-wrap'); wrap.style.width = `${doc.width * zoom}px`; wrap.style.height = `${doc.height * zoom}px`; for (const id of ['canvas', 'gpu-canvas', 'overlay']) { $(id).style.width = `${doc.width * zoom}px`; $(id).style.height = `${doc.height * zoom}px`; } $('zoom-value').textContent = `${Math.round(zoom * 100)}%`; }
 function renderPixels() {
   const c = $('canvas'); if (c.width !== doc.width || c.height !== doc.height) { c.width = doc.width; c.height = doc.height; $('overlay').width = doc.width; $('overlay').height = doc.height; }
-  const ctx = c.getContext('2d'); ctx.clearRect(0, 0, c.width, c.height); ctx.drawImage(composite(doc, preview), 0, 0); drawOverlay();
+  renderer.render(doc,preview); drawOverlay();
 }
 function drawOverlay() {
   const ctx = $('overlay').getContext('2d'); ctx.clearRect(0, 0, doc.width, doc.height); ctx.lineWidth = 1 / zoom;
@@ -62,7 +66,11 @@ function renderProperties() {
     const remove = document.createElement('button'); remove.textContent = '×'; remove.title = t('Remove filter'); remove.onclick = () => edit(() => l.filters.splice(index, 1)); row.append(toggle, name, remove); $('filter-list').append(row);
   });
 }
-async function run(action) { if (busy) return; busy = true; document.body.style.cursor = 'wait'; try { await action(); } catch (error) { console.error(error); toast(error.message); status(error.message); } finally { busy = false; document.body.style.cursor = ''; } }
+async function run(action) { if (busy) return; busy = true; document.body.style.cursor = 'wait'; try { await action(); } catch (error) { if(error.name!=='AbortError'){console.error(error); toast(error.message); status(error.message);}else toast(t('Canceled')); } finally { busy = false; document.body.style.cursor = ''; } }
+async function background(label,fn){
+  const controller=new AbortController(),source=doc,version=revision;$('job-label').textContent=label;$('job-value').value=0;$('job-progress').hidden=false;$('job-cancel').onclick=()=>controller.abort();
+  try{const result=await fn({signal:controller.signal,onProgress:value=>$('job-value').value=value});if(controller.signal.aborted)throw new DOMException('Canceled','AbortError');if(doc!==source||revision!==version)throw new Error(t('Document changed; background result was discarded.'));return result;}finally{$('job-progress').hidden=true;}
+}
 async function readFile(add = false) {
   if (!add && !discard()) return;
   await run(async () => {
@@ -71,9 +79,9 @@ async function readFile(add = false) {
     if (ext === 'psd') {
       if (add) throw new Error('Use Open to load a PSD document. Add image accepts PNG, JPEG and WebP.');
       status('Decoding PSD…'); await new Promise(resolve => requestAnimationFrame(resolve));
-      const result = importPsd(file.bytes, file.name);
+      const result = await background(t('Decoding PSD…'),options=>readPsdJob(file.bytes,file.name,options));
       if (result.notes.length) { const choice = await report(result.notes, Boolean(result.preview)); if (choice === 'cancel') return; next = choice === 'preview' ? result.preview : result.doc; } else next = result.doc;
-    } else if (ext === 'cwin') { if (add) throw new Error('Use Open to load a project.'); next = await parseProject(file.bytes); }
+    } else if (ext === 'cwin') { if (add) throw new Error('Use Open to load a project.'); next = await background(t('Opening project…'),options=>parseProject(file.bytes,options)); }
     else {
       const url = URL.createObjectURL(new Blob([file.bytes])); let image; try { image = await loadImage(url); } finally { URL.revokeObjectURL(url); }
       if (add) { if (pixelBytes(doc) / 4 + image.width * image.height > 64_000_000) throw new Error('Document exceeds 64 MP pixel budget.'); history.push(doc); const l = layer(file.name, image); doc.layers.unshift(l); active = l.id; markDirty(); render(); return; }
@@ -90,13 +98,16 @@ function report(notes, hasPreview) {
 }
 async function save(extension) {
   await run(async () => {
+    let highPrecision=false;walk(doc.layers,l=>{if(l.highPrecision||l.raw)highPrecision=true;});
+    if(extension!=='cwin'&&highPrecision&&!confirm(t('This export uses the 8-bit preview. Original high-precision pixels and RAW data are kept only in a .cwin project. Continue?')))return;
     if (extension === 'psd' && !confirm(t('Export a layered PSD copy?\n\nWindows filters and transforms are baked into each pixel layer. Masks, groups, visibility, opacity and supported blend modes remain editable. Save a .cwin project as well to retain the filter stack.'))) return;
     let bytes;
-    if (extension === 'psd') bytes = exportPsd(doc);
-    else if (extension === 'cwin') bytes = serializeProject(doc);
-    else { let c = composite(doc); if (extension === 'jpg') { const white = canvas(doc.width, doc.height), ctx = white.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, doc.width, doc.height); ctx.drawImage(c, 0, 0); c = white; } const blob = await new Promise(resolve => c.toBlob(resolve, extension === 'jpg' ? 'image/jpeg' : 'image/png', .94)); bytes = new Uint8Array(await blob.arrayBuffer()); }
+    if (extension === 'psd') bytes = await background(t('Exporting…'),options=>exportJob(doc,extension,options));
+    else if (extension === 'cwin') bytes = await background(t('Saving project…'),options=>serializeProjectV2(doc,options));
+    else bytes=await background(t('Exporting…'),options=>exportJob(doc,extension,options));
+    const savedRevision=revision;
     const saved = await window.desktop.save({ name: doc.name.replace(/[<>:"/\\|?*]/g, '_') + (extension === 'psd' ? '-windows' : '') + '.' + extension, extension, bytes });
-    if (saved) { if (extension === 'cwin') { dirty = false; window.desktop.dirty(false); render(); } toast(t('Saved {name}', {name:saved})); }
+    if (saved) { if (extension === 'cwin' && revision===savedRevision) { dirty = false; window.desktop.dirty(false); render(); } toast(t('Saved {name}', {name:saved})); }
   });
 }
 
@@ -221,9 +232,10 @@ $('language').onchange = async () => {
   catch (error) { $('language').value = before; toast(error.message); }
   finally { $('language').disabled = false; }
 };
-window.appReady = window.desktop.getSettings().then(settings => refreshLanguage(settings.language)).catch(error => { refreshLanguage('en'); toast(error.message); });
+$('renderer-mode').onchange=async()=>{const mode=$('renderer-mode').value;try{const settings=await window.desktop.updateSettings({language:getLanguage(),renderer:mode});renderer.setMode(settings.renderer);}catch(error){$('renderer-mode').value=renderer.mode;toast(error.message);}};
+window.appReady = window.desktop.getSettings().then(settings => {renderer.setMode(settings.renderer||'auto');$('renderer-mode').value=renderer.mode;refreshLanguage(settings.language);}).catch(error => { refreshLanguage('en'); toast(error.message); });
 function maskColor(color) { const rgb = color.slice(1).match(/../g).map(x => parseInt(x, 16)); const gray = Math.round(.2126 * rgb[0] + .7152 * rgb[1] + .0722 * rgb[2]); return `rgb(${gray},${gray},${gray})`; }
-$('invert-mask').onclick = () => { const l = selected(); if (l?.mask) edit(() => { const ctx = l.mask.getContext('2d'), data = ctx.getImageData(0, 0, l.mask.width, l.mask.height); for (let i = 0; i < data.data.length; i += 4) for (let c = 0; c < 3; c++) data.data[i + c] = 255 - data.data[i + c]; ctx.putImageData(data, 0, 0); }); };
+$('invert-mask').onclick = () => { const l = selected(); if (l?.mask) edit(() => { const ctx = l.mask.getContext('2d'), data = ctx.getImageData(0, 0, l.mask.width, l.mask.height); for (let i = 0; i < data.data.length; i += 4) for (let c = 0; c < 3; c++) data.data[i + c] = 255 - data.data[i + c]; ctx.putImageData(data, 0, 0); invalidate(l); }); };
 $('remove-mask').onclick = () => { const l = selected(); if (l?.mask) edit(() => { l.mask = null; target = 'image'; }); };
 $('new-adjustment').onclick = () => {
   if (busy) return;
@@ -238,7 +250,7 @@ interactions = installInteractions({
   get doc(){return doc;},set doc(v){doc=v;},get active(){return active;},set active(v){active=v;},get selection(){return selection;},set selection(v){selection=v;doc._selection=v;},get target(){return target;},set target(v){target=v;},get tool(){return tool;},set tool(v){tool=v;},get zoom(){return zoom;},set zoom(v){zoom=v;},get busy(){return busy;},get history(){return history;},checkpoint,render,renderPixels,drawOverlay,fit,sizeView,toast,
   reveal(){if(welcome){welcome=false;$('welcome').style.display='none';$('canvas-wrap').style.display='block';fit();}}
 });
-window.editorTest = { interactions, adopt, newDocument, demoDocument, selected, get doc(){return doc;}, get selection(){return selection;}, get active(){return active;}, get history(){return history;}, get zoom(){return zoom;} };
+window.editorTest = { background,markDirty,readPsdJob,exportJob,canvas,layer,composite,BLENDS,invalidate,serializeProject,renderer,serializeProjectV2,parseProject, interactions, adopt, newDocument, demoDocument, selected, get doc(){return doc;}, get selection(){return selection;}, get active(){return active;}, get history(){return history;}, get zoom(){return zoom;} };
 render();
 if (new URLSearchParams(location.search).get('demo') === '1') adopt(demoDocument());
 
@@ -345,7 +357,8 @@ window.runSelfTest = async (externalFixtures = []) => {
 };
 window.desktopIOTest = async () => {
   const bytes = exportPsd(demoDocument());
-  const saved = await window.desktop.save({ name: 'io-test.psd', extension: 'psd', bytes });
+  const savedRevision=revision;
+    const saved = await window.desktop.save({ name: 'io-test.psd', extension: 'psd', bytes });
   if (!saved) throw new Error('Save canceled unexpectedly');
   const opened = await window.desktop.open();
   const imported = importPsd(opened.bytes, opened.name);

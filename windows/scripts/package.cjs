@@ -16,7 +16,7 @@ async function build() {
   await fs.copyFile(path.join(root, '..', 'NOTICE.md'), path.join(destination, 'NOTICE.md'));
   await fs.copyFile(path.join(root, 'README-WINDOWS.md'), path.join(destination, 'README-WINDOWS.md'));
   const licenses = [];
-  for (const name of ['ag-psd', 'pako', 'base64-js']) {
+  for (const name of ['ag-psd', 'pako', 'base64-js', 'fflate']) {
     const directory = path.join(root, 'node_modules', name);
     const files = await fs.readdir(directory);
     const file = files.find(n => /^licen[sc]e/i.test(n));

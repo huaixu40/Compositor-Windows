@@ -1,8 +1,20 @@
 // Translate UI bindings only. Document titles, layer names and pixel content are user data.
 let language = 'en';
 const zh = {
+  'Exporting…':'正在导出…',
+  'Document changed; background result was discarded.':'文档已更改，后台结果已丢弃。',
+  'This export uses the 8-bit preview. Original high-precision pixels and RAW data are kept only in a .cwin project. Continue?':'此次导出使用 8 位预览。原始高精度像素和 RAW 数据仅保留在 .cwin 项目中，是否继续？',
+  'File exceeds the input size limit (projects: 512 MB, images: 256 MB).':'文件超过输入大小限制：项目 512 MB，图片 256 MB。',
+  'Background task timed out.':'后台任务超时，请缩小文档后重试。','Background task failed.':'后台任务失败，原文档未被替换。',
+  'Project resources exceed 512 MB.':'项目资源超过 512 MB。','Project exceeds 512 MB.':'项目超过 512 MB。',
+  'Project resource limit exceeded.':'项目资源超出限制。','Invalid project resource path.':'项目资源路径无效。',
+  'Missing, duplicate or oversized project manifest.':'项目清单缺失、重复或过大。','Project contains unlisted resources.':'项目包含清单以外的资源。',
+  'Invalid high precision resource.':'高精度像素资源无效。','Non-finite high precision pixels.':'高精度像素包含无效数值。',
+  'Unsupported project color space.':'不支持此项目色彩空间。','Missing project image.':'项目图片资源缺失。',
+  'Invalid project PNG.':'项目 PNG 资源无效。','Invalid selection dimensions.':'选区尺寸无效。','Missing original RAW resource.':'原始 RAW 资源缺失。',
+  'Saving project…':'正在保存项目…','Opening project…':'正在打开项目…','Canceled':'已取消','Rendering':'渲染方式','Automatic (GPU preferred)':'自动（优先 GPU）','Compatibility (CPU)':'兼容模式（CPU）','GPU acceleration active':'正在使用 GPU 加速','Compatibility renderer active':'正在使用兼容渲染',
   "M rectangle / Shift+M ellipse · L lasso / Shift+L polygon · W wand · C crop · G gradient / Shift+G bucket · H hand · Z zoom. Ctrl+C copy · Ctrl+Shift+C merged copy · Ctrl+X cut · Ctrl+V paste · Ctrl+A select all · Ctrl+Shift+D invert selection. Right-click canvas or layers for actions. Drag layer rows to reorder or enter groups. Move selection pixels: Enter apply, Esc cancel.": "M 矩形 / Shift+M 椭圆 · L 套索 / Shift+L 多边形 · W 魔棒 · C 裁剪 · G 渐变 / Shift+G 油漆桶 · H 抓手 · Z 缩放。Ctrl+C 复制 · Ctrl+Shift+C 合并复制 · Ctrl+X 剪切 · Ctrl+V 粘贴 · Ctrl+A 全选 · Ctrl+Shift+D 反选。右键画布或图层显示操作，拖动图层行可排序或编组。移动选区内容：Enter 提交，Esc 取消。",
-  'WINDOWS · PREVIEW': 'WINDOWS · 预览版', 'Compositor Windows · 0.3 preview': 'Compositor Windows · 0.3 预览版',
+  'WINDOWS · PREVIEW': 'WINDOWS · 预览版', 'Compositor Windows · 0.4 preview': 'Compositor Windows · 0.4 预览版',
   'Settings': '设置', 'Language': '语言', 'Interface language': '界面语言', 'Saved automatically. Changes take effect immediately.': '自动保存，切换后立即生效。',
   'New': '新建', 'Open…': '打开…', 'Add image…': '添加图片…', 'Save project': '保存项目', 'Export PSD': '导出 PSD',
   'Compatibility and shortcuts': '兼容性与快捷键', '↶ Undo': '↶ 撤销', '↷ Redo': '↷ 重做', 'Size': '大小', 'Flow': '流量', 'Hardness': '硬度', 'Brush color': '画笔颜色',
@@ -18,7 +30,7 @@ const zh = {
   '8-bit RGB PSD: pixel layers, groups, visibility, opacity, common blend modes and raster masks. Levels, Curves, Exposure and Invert adjustment layers retain their Photoshop parameters, with an approximate Windows preview. Export writes a new layered PSD; editable Windows filters are baked into each layer’s pixels. Save .cwin to retain filters.': '支持 8 位 RGB PSD 的像素图层、图层组、显隐、不透明度、常用混合模式和栅格蒙版。色阶、曲线、曝光和反相调整图层保留 Photoshop 参数，并提供近似预览。导出为新的分层 PSD；本客户端的逐层滤镜会烘焙到像素中，保存 .cwin 可保留滤镜。',
   'Text, smart objects and vectors use cached pixels. Other adjustment layers, clipping, layer styles and unsupported rendering features are reported before import; use merged preview when fidelity matters. CMYK, 16/32-bit and PSB are rejected. Photoshop pixel-perfect color matching is not guaranteed. Original .comp projects are not supported in this preview.': '文字、智能对象和矢量使用缓存像素。其他调整图层、剪贴关系、图层样式及不支持的渲染特性在导入前报告；需要原始观感时选择合并预览。不支持 CMYK、16/32 位、PSB 和原版 .comp 项目。不保证与 Photoshop 逐像素色彩一致。',
   'V move · B brush · E eraser · S clone stamp (Alt-click source) · M rectangle selection · I color picker. Ctrl+O open · Ctrl+S save project · Ctrl+Shift+S export PSD · Ctrl+Z undo · Ctrl+Shift+Z redo · Ctrl+J duplicate · Ctrl+D deselect. Click a mask thumbnail to paint black/white coverage. Double-click a filter to edit it.': 'V 移动 · B 画笔 · E 橡皮 · S 仿制图章（Alt 点击取样）· M 矩形选区 · I 吸管。Ctrl+O 打开 · Ctrl+S 保存项目 · Ctrl+Shift+S 导出 PSD · Ctrl+Z 撤销 · Ctrl+Shift+Z 重做 · Ctrl+J 复制图层 · Ctrl+D 取消选区。点击蒙版缩略图编辑覆盖范围，双击滤镜名称重新编辑。',
-  'File limit: 256 MB. Canvas: 16 MP. Total imported source/mask pixels: 64 MP. Undo: up to 20 steps; large documents reduce available history. This preview is unsigned.': '输入文件上限 256 MB，画布上限 1600 万像素，导入源图及蒙版合计上限 6400 万像素。最多撤销 20 步，大文档会减少可用历史。本预览版未签名。',
+  'File limit: projects 512 MB; images 256 MB. Canvas: 16 MP. Total imported source/mask pixels: 64 MP. Undo: up to 20 steps; large documents reduce available history. This preview is unsigned.': '项目输入上限 512 MB，图片输入上限 256 MB，画布上限 1600 万像素，导入源图及蒙版合计上限 6400 万像素。最多撤销 20 步，大文档会减少可用历史。本预览版未签名。',
   'Select a pixel layer first.': '请先选择像素图层。', 'Select a pixel layer for this tool.': '此工具需要选择像素图层。', 'Discard unsaved changes? Save a .cwin project to keep your editable layers and filters.': '放弃未保存的修改？保存 .cwin 项目可保留可编辑图层和滤镜。',
   'MASK · black hides / white reveals': '蒙版 · 黑色隐藏 / 白色显示', 'Alt-click the layer to choose a clone source': 'Alt 点击图层选择仿制来源', 'Local editing · source file protected': '本地编辑 · 原文件受保护', '{count} layers': '{count} 个图层',
   'Toggle visibility': '切换显隐', 'Layer group': '图层组', 'Edit pixels': '编辑像素', 'Edit mask; Shift-click enables/disables': '编辑蒙版；Shift 点击启用 / 禁用', 'Toggle filter': '开关滤镜', 'Double-click to edit': '双击编辑', 'Remove filter': '移除滤镜',
@@ -37,6 +49,7 @@ export function t(text, values = {}) { let result = language === 'zh-CN' ? (zh[t
 export function message(text) {
   if (language === 'en') return text;
   if (zh[text]) return zh[text];
+  if(text.startsWith('Project resource checksum mismatch: '))return '项目资源校验失败：'+text.slice(36);
   const ipc = text.match(/^Error invoking remote method '[^']+': Error: (.*)$/); if (ipc) return message(ipc[1]);
   // Preserve the exact layer name preceding a conversion note, even if it contains a colon.
   for (const [en, cn] of Object.entries(zh)) if (text.endsWith(': ' + en)) return text.slice(0, -en.length) + cn;

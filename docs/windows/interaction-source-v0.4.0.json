@@ -1,0 +1,64 @@
+{
+  "timestamp": "2026-10-27T12:02:31.327Z",
+  "passed": 14,
+  "failed": 0,
+  "results": [
+    {
+      "name": "Trusted mouse rectangle selection, reverse drag, clipping, clear and undo",
+      "passed": true
+    },
+    {
+      "name": "Ellipse, additive and subtractive selections constrain edits",
+      "passed": true
+    },
+    {
+      "name": "Windows clipboard selection copy, cut, paste and external image",
+      "passed": true
+    },
+    {
+      "name": "No-selection copy preserves layer filters and mask",
+      "passed": true
+    },
+    {
+      "name": "Mouse layer movement and floating selection cancel/apply use one undo",
+      "passed": true
+    },
+    {
+      "name": "Right-click actions and HTML layer drag into/out of groups",
+      "passed": true
+    },
+    {
+      "name": "Per-tool properties, paint bucket, gradient, lasso, polygon and wand",
+      "passed": true
+    },
+    {
+      "name": "Crop cancel/apply and undo restore document coordinates",
+      "passed": true
+    },
+    {
+      "name": "Text input shortcuts do not trigger canvas actions; Chinese input retained",
+      "passed": true
+    },
+    {
+      "name": "Selection intersection, feather, invert, mask and selection undo/redo",
+      "passed": true
+    },
+    {
+      "name": "Selection coordinates remain correct after zoom and actual wheel scrolling",
+      "passed": true
+    },
+    {
+      "name": "Mouse-created selection and edits survive actual project save and reopen",
+      "passed": true
+    },
+    {
+      "name": "Real brush and eraser respect selection; clone and eyedropper sample pixels",
+      "passed": true
+    },
+    {
+      "name": "Group movement carries masks, uses one undo and prevents nested cycles",
+      "passed": true
+    }
+  ],
+  "rendererErrors": []
+}

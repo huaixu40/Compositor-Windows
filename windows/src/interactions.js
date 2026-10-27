@@ -1,5 +1,6 @@
+import { CommandRegistry } from './commands.js';
 import { canvas, copy, layer, cloneDocument, cloneLayer, walk, findLayer, siblings, invalidate, composite, filtered, localPoint, pixelBytes } from './engine.js';
-import { serializeProject, parseProject, loadImage } from './formats.js';
+import { serializeProjectV2, parseProject, loadImage } from './formats.js';
 import { getLanguage } from './i18n.js';
 import { normalizedSelection, shapeSelection, selectionFromMask, featherSelection, combineSelections, invertSelection, coverageInLayer, applyCoverage, floodMask, moveLayer } from './selection.js';
 const $ = id => document.getElementById(id);
@@ -17,8 +18,7 @@ export function installInteractions(s) {
   const options={};
   for(const name of Object.keys(names)) options[name]={size:40,hardness:100,flow:100,color:'#d4ec98',mode:'replace',feather:0,ratio:'free',tolerance:32,contiguous:true,autoSelect:true,aligned:true,sample:'layer',radius:1,gradient:'linear',endColor:'#ffffff'};
   const oldActions={};
-  const commands=new Map();
-  let clipboardQueue=Promise.resolve(), pendingClipboard=0;
+  const commands=new CommandRegistry({blocked:()=>s.busy||operationBusy,before:id=>{if(floating&&!['commit-float','cancel-float'].includes(id))commitFloating();},error:e=>s.toast(e.message)});
   const message=(en,zh)=>s.toast(text(en,zh));
   const sel=()=>normalizedSelection(s.selection,s.doc.width,s.doc.height);
   const current=()=>findLayer(s.doc,s.active);
@@ -34,18 +34,7 @@ export function installInteractions(s) {
   function coverage(l=current()) { return s.selection ? coverageInLayer(sel(),l,(s.target==='mask'?l.mask:l.image).width,(s.target==='mask'?l.mask:l.image).height) : null; }
   function gray(hex) { const a=hex.slice(1).match(/../g).map(v=>parseInt(v,16)); const n=Math.round(a[0]*.2126+a[1]*.7152+a[2]*.0722); return `rgb(${n},${n},${n})`; }
   function register(id,en,zh,run,enabled=()=>true) { commands.set(id,{id,en,zh,run,enabled}); }
-  async function execute(id) {
-    const command=commands.get(id); if(!command||s.busy||operationBusy) return;
-    if(floating&&!['commit-float','cancel-float'].includes(id)) commitFloating();
-    if(!command.enabled()) { message('This command is not available for the current target.','当前目标无法执行此操作。'); return; }
-    if(['copy','cut','copy-merged','paste'].includes(id)) {
-      pendingClipboard++;
-      const task=clipboardQueue.then(()=>command.run());
-      clipboardQueue=task.catch(e=>s.toast(e.message)).finally(()=>{pendingClipboard--;});
-      return clipboardQueue;
-    }
-    try { return await command.run(); } catch(e) { s.toast(e.message); }
-  }
+  const execute=id=>commands.execute(id);
   function drawOverlay(ctx) {
     const selection=sel();
     ctx.save(); ctx.lineWidth=1/s.zoom;
@@ -127,7 +116,7 @@ export function installInteractions(s) {
     const l=current(), selection=sel(), document=s.doc, historyEntry=s.history.past.at(-1), active=s.active, target=s.target, selectionRef=s.selection; if(!l&&!merged)return;
     if(selection?.empty)return;
     let image,project=null,origin=null;
-    if(!selection&&!merged){project=serializeProject({...s.doc,layers:[l]});image=composite({...s.doc,layers:[l]});}
+    if(!selection&&!merged){const snapshot=cloneDocument({...document,layers:[l]});image=composite(snapshot);project=await serializeProjectV2(snapshot);}
     else{
       if(s.target==='mask'&&!merged){image=canvas(s.doc.width,s.doc.height);const ctx=image.getContext('2d');if(l.image){ctx.translate(l.x+l.image.width*l.scale/2,l.y+l.image.height*l.scale/2);ctx.rotate(l.rotation*Math.PI/180);ctx.scale(l.scale*(l.flip?-1:1),l.scale);ctx.drawImage(l.mask,-l.mask.width/2,-l.mask.height/2);}else ctx.drawImage(l.mask,0,0);}
       else image=composite({...s.doc,layers:merged?s.doc.layers:[l]});
@@ -224,7 +213,7 @@ export function installInteractions(s) {
     if(['select','ellipse','crop'].includes(gesture.kind)){pendingShape.points=[gesture.start,shapeEnd(gesture.start,bounded(p))];s.drawOverlay();return;}
     if(gesture.kind==='lasso'){gesture.points.push(bounded(p));pendingShape.points=gesture.points;s.drawOverlay();return;}
     if(gesture.kind==='gradient'){gesture.end=p;pendingShape.points=[gesture.start,p];s.drawOverlay();return;}
-    if(gesture.kind==='move'){const dx=Math.round(p.x-gesture.start.x),dy=Math.round(p.y-gesture.start.y);if(!gesture.moved&&(dx||dy)){if(!floating)remember();gesture.moved=true;}for(const a of gesture.positions){a.l.x=a.x+dx;a.l.y=a.y+dy;}for(const a of gesture.masks){const ctx=a.l.mask.getContext('2d');ctx.fillStyle='#000';ctx.fillRect(0,0,a.l.mask.width,a.l.mask.height);ctx.drawImage(a.source,dx,dy);}}
+    if(gesture.kind==='move'){const dx=Math.round(p.x-gesture.start.x),dy=Math.round(p.y-gesture.start.y);if(!gesture.moved&&(dx||dy)){if(!floating)remember();gesture.moved=true;}for(const a of gesture.positions){a.l.x=a.x+dx;a.l.y=a.y+dy;}for(const a of gesture.masks){const ctx=a.l.mask.getContext('2d');ctx.fillStyle='#000';ctx.fillRect(0,0,a.l.mask.width,a.l.mask.height);ctx.drawImage(a.source,dx,dy);invalidate(a.l);}}
     if(gesture.kind==='paint'){const l=current(),q=localPoint(l,p);paintDab(l,gesture.last,q);gesture.last=q;}
     s.renderPixels();
   }
@@ -256,6 +245,6 @@ export function installInteractions(s) {
   document.addEventListener('keyup',e=>{if(e.key===' '&&spaceTool){s.tool=spaceTool;spaceTool=null;refresh();}});
   window.addEventListener('blur',()=>{if(gesture)up();if(spaceTool){s.tool=spaceTool;spaceTool=null;refresh();}});
   refresh();layerRows();
-  return {refresh,drawOverlay,layerRows,execute,chooseTool,get pendingClipboard(){return pendingClipboard;},get options(){return options;},get floating(){return floating;},reset(){gesture=null;polygon=[];pendingShape=null;cropRect=null;floating=null;cloneSource=null;alignedOffset=null;},finishGesture:up};
+  return {refresh,drawOverlay,layerRows,execute,chooseTool,get pendingClipboard(){return commands.pendingClipboard;},get options(){return options;},get floating(){return floating;},reset(){gesture=null;polygon=[];pendingShape=null;cropRect=null;floating=null;cloneSource=null;alignedOffset=null;},finishGesture:up};
 }
 

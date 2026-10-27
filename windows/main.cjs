@@ -22,7 +22,7 @@ ipcMain.handle('open-file', async event => {
   const result = await dialog.showOpenDialog(window, { title: ui('Open image or project', '打开图片或项目'), properties: ['openFile'], filters: [{...filters[0], name: ui(filters[0].name, '图片与项目')}] });
   if (result.canceled) return null;
   const file = result.filePaths[0], stat = await fs.stat(file);
-  if (stat.size > 256 * 1024 * 1024) throw new Error('File exceeds this preview build’s 256 MB limit.');
+  if (stat.size > (path.extname(file).toLowerCase()==='.cwin'?512:256) * 1024 * 1024) throw new Error('File exceeds the input size limit (projects: 512 MB, images: 256 MB).');
   const bytes = await fs.readFile(file);
   sourcePaths.add(path.resolve(file).toLowerCase());
   return { name: path.basename(file), bytes: new Uint8Array(bytes) };

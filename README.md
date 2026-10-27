@@ -2,11 +2,11 @@
 
 **基于 [Robbie Tilton](https://github.com/robbietilton) 的 [Compositor](https://github.com/robbietilton/Compositor) 改写的非官方 Windows 图像编辑器。**
 
-> 原项目由 Robbie Tilton 开发，原始版权属于 **Wonder Assembly LLC**，采用 MIT 许可证。本仓库保留原版源码、Git 历史及版权声明；Windows 客户端是由 [huaixu40](https://github.com/huaixu40) 维护的独立改写，使用 Electron / Canvas 实现。**本项目不是原作者官方发布，也未获得原作者背书。**
+> 原项目由 Robbie Tilton 开发，原始版权属于 **Wonder Assembly LLC**，采用 MIT 许可证。本仓库保留原版源码、Git 历史及版权声明；Windows 客户端是由 [huaixu40](https://github.com/huaixu40) 维护的独立改写，使用 Electron / WebGPU / Canvas 实现。**本项目不是原作者官方发布，也未获得原作者背书。**
 >
-> An unofficial Windows adaptation of [Compositor by Robbie Tilton](https://github.com/robbietilton/Compositor). The original macOS source and MIT copyright are preserved. The Windows client is a separate Electron/Canvas implementation, not an official release or a feature-complete port.
+> An unofficial Windows adaptation of [Compositor by Robbie Tilton](https://github.com/robbietilton/Compositor). The original macOS source and MIT copyright are preserved. The Windows client is a separate Electron/WebGPU/Canvas implementation, not an official release or a feature-complete port.
 
-[下载 Windows 预览版](https://github.com/huaixu40/Compositor-Windows/releases/tag/windows-v0.3.0) · [Windows 详细说明](windows/README-WINDOWS.md) · [原版 README](README.upstream.md) · [许可证](LICENSE)
+[下载 Windows 预览版](https://github.com/huaixu40/Compositor-Windows/releases/tag/windows-v0.4.0) · [Windows 详细说明](windows/README-WINDOWS.md) · [原版 README](README.upstream.md) · [许可证](LICENSE)
 
 ![Compositor Windows 编辑器预览](docs/windows/preview.png)
 
@@ -14,9 +14,17 @@
 
 Compositor 原版是基于 SwiftUI、AppKit、CoreGraphics / CoreImage / Metal 的 macOS 图像编辑器，不能直接在 Windows 上编译运行。本仓库保留原版工程，并在 `windows/` 中新增 Windows 客户端，优先实现 **PSD 图层编辑和常用修图工作流**。
 
-当前版本为 **0.3.0 Preview**。它已能在 Windows 上独立启动、打开图片、编辑图层并保存，但还没有完整复现原版或 Photoshop 的全部功能。以下功能与限制描述的是 Windows 版，不应与原版功能列表混用。
+当前版本为 **0.4.0 Preview**。它已能在 Windows 上独立启动、打开图片、编辑图层并保存，但还没有完整复现原版或 Photoshop 的全部功能。以下功能与限制描述的是 Windows 版，不应与原版功能列表混用。
 
-## 0.3 新增
+## 0.4 新增
+
+- **WebGPU 合成**：图层、蒙版、16 种混合模式、变换及七种滤镜使用 GPU；512 px 分块合成、纹理缓存和局部重绘。模糊使用 Canvas 兼容路径。
+- **自动回退**：无 GPU、设备丢失或分配失败时回到 CPU；设置中可手动选择兼容模式，文档和撤销记录保留。
+- **后台文件任务**：PSD 读写、图片导出、项目 ZIP 打包及校验在 Worker 中执行，提供进度与取消；过期结果不会覆盖后续编辑。
+- **独立项目 v2**：ZIP + 独立 PNG/二进制资源，每项资源校验 SHA256。继续读取 v1，另存升级副本；格式预留原始高精度资源，不代表已经支持 RAW 开发。
+- 验证记录与明确限制见 [0.4 验证记录](docs/windows/VALIDATION-0.4.md)，格式见 [cwin v2](docs/windows/CWIN-V2.md)。
+
+## 0.3 操作功能（保留）
 
 - **真正的选区**：矩形、椭圆、套索、多边形套索、魔棒；相加、相减、相交、羽化、反选。绘画、填充和擦除受选区限制，可转蒙版，选区可撤销并保存到项目。
 - **鼠标移动**：画布拖动图层；选区内容可浮动移动、提交或取消。图层列表支持拖动排序和移入 / 移出图层组。
@@ -26,8 +34,8 @@ Compositor 原版是基于 SwiftUI、AppKit、CoreGraphics / CoreImage / Metal �
 
 ## 下载与启动
 
-1. 打开 [Windows v0.3.0 预发布页面](https://github.com/huaixu40/Compositor-Windows/releases/tag/windows-v0.3.0)。
-2. 下载 `Compositor-Windows-0.3.0-win-x64.zip`，解压到可写目录。
+1. 打开 [Windows v0.4.0 预发布页面](https://github.com/huaixu40/Compositor-Windows/releases/tag/windows-v0.4.0)。
+2. 下载 `Compositor-Windows-0.4.0-win-x64.zip`，解压到可写目录。
 3. 双击解压目录中的 `Compositor-Windows.exe`。
 
 便携包自带运行时，无需安装 Node.js、Python 或 Xcode，正常编辑不需要联网。**请保留整个解压目录，不要只复制 exe。** 当前提供 Windows x64 构建；已在开发者的 Windows 电脑验证，尚未覆盖不同设备的兼容性测试。预览版未做代码签名。
@@ -62,7 +70,7 @@ Compositor 原版是基于 SwiftUI、AppKit、CoreGraphics / CoreImage / Metal �
 
 ## 暂未移植
 
-原版 GPU 渲染管线、Camera Raw、内容识别修复、自动抠图、可编辑文字、钢笔路径、自由扭曲和完整高级图层效果等尚未实现。大图及多层实时处理可能卡顿。详细容量限制和操作说明见 [Windows 使用说明](windows/README-WINDOWS.md)。
+原版 Metal 管线未直接移植；Windows 已加入 WebGPU 合成。Camera Raw、内容识别修复、自动抠图、可编辑文字、钢笔路径、自由扭曲和完整高级图层效果等尚未实现。复杂组、模糊与 CPU 回退仍可能卡顿。详细容量限制和操作说明见 [Windows 使用说明](windows/README-WINDOWS.md)。
 
 ## 从源码运行
 
@@ -84,15 +92,15 @@ npm.cmd run package
 ```
 
 - `npm test` 在真实 Electron renderer 中执行测试，结果和界面截图写入 `windows/output/`。
-- `npm run package` 生成 `windows/release/Compositor-Windows-0.3.0/` 和 `windows/Start-Compositor.cmd`。
+- `npm run package` 生成 `windows/release/Compositor-Windows-0.4.0/` 和 `windows/Start-Compositor.cmd`。
 - 打包器拒绝覆盖已有同名发布目录，重新打包前请先归档旧目录。
 - 二进制与依赖目录不进入 Git 源码历史，便携包通过 GitHub Releases 提供。
 
 ## 验证记录
 
-2026-10-18，0.3.0 源码版和便携 exe 均通过 **21 项回归检查 + 14 组真实交互测试**。交互测试覆盖实际鼠标框选、滚动后的坐标、图层拖放、浮动选区取消、右键、系统剪贴板、工具属性和保存重开。
+2026-10-27，0.4.0 源码版和便携 exe 均通过 **21 项回归检查 + 14 组真实交互测试 + 44 项渲染/项目测试**。交互测试覆盖实际鼠标框选、滚动后的坐标、图层拖放、浮动选区取消、右键、系统剪贴板、工具属性和保存重开。
 
-[验证方法与未验收项](docs/windows/VALIDATION-0.3.md) · [源码回归](docs/windows/validation-source-v0.3.0.json) · [源码交互](docs/windows/interaction-source-v0.3.0.json) · [便携版回归](docs/windows/validation-v0.3.0.json) · [便携版交互](docs/windows/interaction-portable-v0.3.0.json)。中文输入法候选窗完整流程、1080p 30 FPS 和 Photoshop 实机互操作尚未验收；这些检查不构成所有 PSD 文件或完整 Photoshop 兼容保证。
+[验证方法与未验收项](docs/windows/VALIDATION-0.4.md) · [源码回归](docs/windows/validation-source-v0.4.0.json) · [源码交互](docs/windows/interaction-source-v0.4.0.json) · [便携版回归](docs/windows/validation-v0.4.0.json) · [便携版交互](docs/windows/interaction-portable-v0.4.0.json)。1080p 五层拖动样例达到 30 次有效更新/秒目标；中文输入法候选窗完整流程和 Photoshop 实机互操作尚未验收；这些检查不构成所有 PSD 文件或完整 Photoshop 兼容保证。
 
 ## 目录说明
 

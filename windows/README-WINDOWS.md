@@ -1,8 +1,8 @@
-# Compositor Windows 0.3 预览版
+# Compositor Windows 0.4 预览版
 
-这是基于 **[Robbie Tilton](https://github.com/robbietilton) 的 [Compositor](https://github.com/robbietilton/Compositor)** 的功能与交互模型改写的 **非官方 Windows 客户端**。原始版权为 **Copyright (c) 2026 Wonder Assembly LLC**，采用 MIT 许可证，原版权声明完整保留。Windows 改写由 [huaixu40](https://github.com/huaixu40) 维护，使用 Electron / Canvas 独立实现，不是原作者官方发布或背书的版本。
+这是基于 **[Robbie Tilton](https://github.com/robbietilton) 的 [Compositor](https://github.com/robbietilton/Compositor)** 的功能与交互模型改写的 **非官方 Windows 客户端**。原始版权为 **Copyright (c) 2026 Wonder Assembly LLC**，采用 MIT 许可证，原版权声明完整保留。Windows 改写由 [huaixu40](https://github.com/huaixu40) 维护，使用 Electron / WebGPU / Canvas 独立实现，不是原作者官方发布或背书的版本。
 
-原版 Swift/macOS 源码完整保留，新增代码位于 `windows/`。它不是原版全功能移植，也不等同于 Photoshop。[下载本版便携包](https://github.com/huaixu40/Compositor-Windows/releases/tag/windows-v0.3.0)。
+原版 Swift/macOS 源码完整保留，新增代码位于 `windows/`。它不是原版全功能移植，也不等同于 Photoshop。[下载本版便携包](https://github.com/huaixu40/Compositor-Windows/releases/tag/windows-v0.4.0)。
 
 ## 启动
 
@@ -10,7 +10,19 @@
 
 本次构建目标为 Windows x64，已在当前 Windows 电脑运行验证。未在其他电脑、Windows ARM 或 32 位 Windows 上验证。程序未做发行签名。
 
-## 本版新增与设置
+## 0.4 渲染与项目升级
+
+设置新增“渲染方式”：自动优先选择 WebGPU，或使用 CPU 兼容模式。选择会保存，下次启动恢复。设备丢失或纹理分配失败会自动回退，原始图层及撤销记录不变。重新选择自动可重试 GPU。
+
+GPU 实现图层合成、蒙版、16 种混合模式、旋转缩放及七种滤镜。512 px 分块和缓存减少重绘；复杂组改动采用全画布重绘。模糊保持旧版 Canvas 算法；文件导出用 CPU 参考渲染。GPU 旋转边缘可能存在轻微差异，需要一致预览时选择 CPU。
+
+PSD 解析、PSD/PNG/JPEG 导出及 ZIP 打包/资源校验在后台 Worker 执行。进度栏可取消；取消不提交半成品，出错后可以继续编辑。文件任务期间会暂时阻止编辑，仍检查文档版本以拒绝过期结果。PNG 预览编码和图层传输在提交 Worker 前异步准备。
+
+保存项目使用独立的 .cwin v2 ZIP 格式，带资源 SHA256。v1 仍可打开，升级时另存副本；0.3 及更早版本不能打开 v2，请保留旧文件。此版本可无损存储已有的 16/32 位资源及 RAW 原始字节，但还没有 RAW 解码、开发界面或高精度编辑；当前显示和普通导出仍使用 8 位预览。含高精度资源时，导出前明确提醒。
+
+[验证与性能记录](https://github.com/huaixu40/Compositor-Windows/blob/main/docs/windows/VALIDATION-0.4.md) · [格式说明](https://github.com/huaixu40/Compositor-Windows/blob/main/docs/windows/CWIN-V2.md)
+
+## 界面设置
 
 右上角“设置 / Settings”中的“界面语言 / Interface language”可选择“简体中文”或“English”。切换即时生效，不需要重启，文档名、图层名及图片文字不会被翻译。首次启动使用系统语言（中文系统默认简体中文，其他系统默认英文）。设置保存在 `%APPDATA%\Compositor-Windows\settings.json`，测试使用独立目录，不会改动正常使用时的偏好。
 
@@ -85,9 +97,9 @@ Ctrl+C 复制选区，无选区复制整层；Ctrl+Shift+C 复制合并结果；
 
 ## 容量与已知限制
 
-单个输入文件最大 256 MB；画布/单张图片最多 8192 px 单边且不超过 1600 万像素；导入文档的累计像素/蒙版预算约 6400 万像素；最多 500 层/32 层嵌套。撤销最多 20 步，按 128 MB 像素预算裁剪历史，单个大快照可能超过此预算。
+项目输入最大 512 MB，图片输入最大 256 MB；画布/单张图片最多 8192 px 单边且不超过 1600 万像素；导入文档的累计像素/蒙版预算约 6400 万像素；最多 500 层/32 层嵌套。撤销最多 20 步，按 128 MB 像素预算裁剪历史，单个大快照可能超过此预算。
 
-这是 CPU/Canvas 为主的预览实现，大图或多层实时修图可能卡顿。尚未移植原版的 GPU 管线、Camera Raw、内容识别修复、自动抠图、文字编辑、钢笔路径、自由扭曲、完整高级图层效果与色彩管理。支持新建图层组和跨组拖放。
+这是 WebGPU / Canvas 预览实现，大图、多层模糊或 CPU 回退可能卡顿。尚未移植 Camera Raw、内容识别修复、自动抠图、文字编辑、钢笔路径、自由扭曲、完整高级图层效果与色彩管理。支持新建图层组和跨组拖放。
 
 ## 开发与复现
 
@@ -100,12 +112,14 @@ npm.cmd ci
 npm.cmd start
 npm.cmd test
 npm.cmd run test:interaction
+npm.cmd run test:render
+npm.cmd run test:performance
 npm.cmd run package
 ```
 
-0.3 的验证记录见仓库 `docs/windows/VALIDATION-0.3.md`。`npm test` 启动实际 Electron renderer，运行像素/PSD/项目/工具/IPC 文件读写验证，结果写入 `output/test-results.json`，界面截图写入 `output/editor.png`。测试使用自建语义样本与 ag-psd 公开的两个 PSD 样本。测试通过不代表经过 Adobe Photoshop 的实机互操作验收；当前没有在 Photoshop 中打开导出文件验证。
+0.4 的验证记录见仓库 `docs/windows/VALIDATION-0.4.md`。`npm test` 启动实际 Electron renderer，运行像素/PSD/项目/工具/IPC 文件读写验证，结果写入 `output/test-results.json`，界面截图写入 `output/editor.png`。测试使用自建语义样本与 ag-psd 公开的两个 PSD 样本。测试通过不代表经过 Adobe Photoshop 的实机互操作验收；当前没有在 Photoshop 中打开导出文件验证。
 
-`npm run package` 生成 `release/Compositor-Windows-0.3.0/`，为防误覆盖会拒绝已有同名发布目录。重新打包前请先自行归档旧目录。
+`npm run package` 生成 `release/Compositor-Windows-0.4.0/`，为防误覆盖会拒绝已有同名发布目录。重新打包前请先自行归档旧目录。
 
 ## 来源与许可
 
@@ -113,7 +127,7 @@ npm.cmd run package
 - 原始版权：Copyright (c) 2026 Wonder Assembly LLC；Windows 改写维护：https://github.com/huaixu40
 - 基线 commit: `365b5745eda537f984f3d5bed1e53c361dbc9c91`
 - 原版 MIT 版权声明保留于仓库 `LICENSE` 和便携版 `COMPOSITOR-LICENSE.txt`。
-- PSD 解析与写出：ag-psd 31.0.3（MIT）；桌面运行时：Electron 44.8.0。
+- PSD 解析与写出：ag-psd 31.0.3（MIT）；ZIP 处理：fflate 0.8.3（MIT）；桌面运行时：Electron 44.8.0。
 - 运行时 `LICENSE`、`LICENSES.chromium.html` 和 `THIRD-PARTY-NOTICES.txt` 随便携包提供。
 - Electron 镜像下载文件已与其 npm 包内官方 SHA256 校验值比对一致：`1c9319bab793492715f7668e0be0e6a30bf2a8577275e40035bd33601bf6f573`。
 

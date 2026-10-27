@@ -1,24 +1,8 @@
-export const LIMIT = 16_000_000;
+import { canvas, copy } from './pixels.js';
+import { layer, newDocument } from './document.js';
+export { canvas, copy, LIMIT } from './pixels.js';
+export { layer, newDocument, walk, findLayer, siblings, cloneLayer, cloneDocument, pixelBytes, History } from './document.js';
 export const BLENDS = { normal: 'source-over', multiply: 'multiply', screen: 'screen', overlay: 'overlay', darken: 'darken', lighten: 'lighten', 'color dodge': 'color-dodge', 'color burn': 'color-burn', 'hard light': 'hard-light', 'soft light': 'soft-light', difference: 'difference', exclusion: 'exclusion', hue: 'hue', saturation: 'saturation', color: 'color', luminosity: 'luminosity' };
-export function canvas(width, height) {
-  if (!Number.isInteger(width) || !Number.isInteger(height) || width < 1 || height < 1 || width > 8192 || height > 8192 || width * height > LIMIT) throw new Error('Image dimensions exceed this build’s 8192 px / 16 MP limit.');
-  const c = document.createElement('canvas'); c.width = width; c.height = height; return c;
-}
-export function copy(c) { if (!c) return null; const out = canvas(c.width, c.height); out.getContext('2d').drawImage(c, 0, 0); return out; }
-export function layer(name, image, options = {}) { return { id: crypto.randomUUID(), name, image, x: 0, y: 0, scale: 1, rotation: 0, flip: false, opacity: 1, blend: 'normal', visible: true, filters: [], mask: null, maskEnabled: true, ...options }; }
-export function newDocument(width, height, name = 'Untitled') { canvas(width, height); return { width, height, name, layers: [layer('Layer 1', canvas(width, height))] }; }
-export function walk(layers, callback, depth = 0) { for (const l of layers) { callback(l, depth); if (l.children) walk(l.children, callback, depth + 1); } }
-export function findLayer(doc, id) { let result; walk(doc.layers, l => { if (l.id === id) result = l; }); return result; }
-export function siblings(doc, id, layers = doc.layers) { if (layers.some(l => l.id === id)) return layers; for (const l of layers) if (l.children) { const found = siblings(doc, id, l.children); if (found) return found; } }
-export function cloneLayer(l) { return { ...l, image: copy(l.image), mask: copy(l.mask), filters: structuredClone(l.filters), adjustment: l.adjustment ? structuredClone(l.adjustment) : undefined, children: l.children?.map(cloneLayer) }; }
-export function cloneDocument(doc) { return { ...doc, layers: doc.layers.map(cloneLayer) }; }
-export function pixelBytes(doc) { let bytes = doc._selection?.mask ? doc._selection.mask.width * doc._selection.mask.height * 4 : 0; walk(doc.layers, l => { for (const c of [l.image, l.mask]) if (c) bytes += c.width * c.height * 4; }); return bytes; }
-export class History {
-  constructor() { this.past = []; this.future = []; }
-  push(doc) { this.past.push(cloneDocument(doc)); this.future = []; while (this.past.length > 20 || (this.past.length > 1 && this.past.reduce((n, d) => n + pixelBytes(d), 0) > 128 * 1024 * 1024)) this.past.shift(); }
-  undo(doc) { if (!this.past.length) return doc; this.future.push(doc); return this.past.pop(); }
-  redo(doc) { if (!this.future.length) return doc; this.past.push(doc); return this.future.pop(); }
-}
 const clamp = n => Math.max(0, Math.min(255, n));
 export function curveLut(points) {
   const sorted = [...points].sort((a, b) => a[0] - b[0]);
@@ -60,7 +44,9 @@ export function applyFilter(source, f) {
   ctx.putImageData(image, 0, 0); return out;
 }
 const cache = new WeakMap();
-export function invalidate(l) { cache.delete(l); }
+const revisions = new WeakMap();
+export const pixelRevision=l=>revisions.get(l)||0;
+export function invalidate(l) { cache.delete(l);revisions.set(l,pixelRevision(l)+1); }
 export function filtered(l, extra) {
   if (!l.image) return null;
   const key = JSON.stringify(l.filters), found = cache.get(l);
