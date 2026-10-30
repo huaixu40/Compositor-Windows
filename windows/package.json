@@ -1,6 +1,6 @@
 {
   "name": "compositor-windows",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Unofficial Windows adaptation of Compositor with layered PSD editing",
   "private": true,
   "main": "main.cjs",
@@ -12,6 +12,7 @@
     "package": "npm run build && node scripts/package.cjs",
     "test:interaction": "npm run build && node test/interactions.cjs",
     "test:render": "npm run build && node test/render-project.cjs",
+    "test:semantic": "npm run build && node test/semantic.cjs",
     "test:performance": "npm run build && node test/benchmark.cjs"
   },
   "dependencies": {

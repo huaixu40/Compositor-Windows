@@ -5,8 +5,8 @@ export function walk(layers, callback, depth = 0) { for (const l of layers) { ca
 export function findLayer(doc, id) { let result; walk(doc.layers, l => { if (l.id === id) result = l; }); return result; }
 export function siblings(doc, id, layers = doc.layers) { if (layers.some(l => l.id === id)) return layers; for (const l of layers) if (l.children) { const found = siblings(doc, id, l.children); if (found) return found; } }
 export function cloneLayer(l) {
-  const result={ ...l, image: copy(l.image), mask: copy(l.mask), filters: structuredClone(l.filters), adjustment: l.adjustment ? structuredClone(l.adjustment) : undefined, children: l.children?.map(cloneLayer) };
-  for(const key of ['text','path','effects','warp'])if(l[key])result[key]=structuredClone(l[key]);
+  const result={ ...l, image: copy(l.image), mask: copy(l.mask), originalImage:copy(l.originalImage),originalMask:copy(l.originalMask), filters: structuredClone(l.filters), adjustment: l.adjustment ? structuredClone(l.adjustment) : undefined, children: l.children?.map(cloneLayer) };
+  for(const key of ['text','path','vectorMask','effects','warp'])if(l[key])result[key]=structuredClone(l[key]);
   // Original RAW/high-precision resource arrays are immutable. Development jobs
   // replace the resource rather than editing a shared history snapshot in place.
   if(l.highPrecision)result.highPrecision={...l.highPrecision};
@@ -14,7 +14,7 @@ export function cloneLayer(l) {
   return result;
 }
 export function cloneDocument(doc) { return { ...doc, layers: doc.layers.map(cloneLayer) }; }
-export function pixelBytes(doc) { let bytes = doc._selection?.mask ? doc._selection.mask.width * doc._selection.mask.height * 4 : 0; walk(doc.layers, l => { for (const c of [l.image, l.mask]) if (c) bytes += c.width * c.height * 4; bytes+=(l.highPrecision?.data?.byteLength||0)+(l.raw?.source?.byteLength||0); }); return bytes; }
+export function pixelBytes(doc) { let bytes = doc._selection?.mask ? doc._selection.mask.width * doc._selection.mask.height * 4 : 0; walk(doc.layers, l => { for (const c of [l.image, l.mask,l.originalImage,l.originalMask]) if (c) bytes += c.width * c.height * 4; bytes+=(l.highPrecision?.data?.byteLength||0)+(l.raw?.source?.byteLength||0); }); return bytes; }
 export class History {
   constructor() { this.past = []; this.future = []; }
   push(doc) { this.past.push(cloneDocument(doc)); this.future = []; while (this.past.length > 20 || (this.past.length > 1 && this.past.reduce((n, d) => n + pixelBytes(d), 0) > 128 * 1024 * 1024)) this.past.shift(); }

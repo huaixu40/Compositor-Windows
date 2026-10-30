@@ -1,0 +1,57 @@
+{
+  "version": "0.5.0",
+  "verifiedAt": "2026-10-30T00:09:40.280Z",
+  "files": [
+    {
+      "file": "main.cjs",
+      "sha256": "82b2adaa1264f4fb0ed3843cb80ecc6bf014a3fa098ce725bd2b5e9c41bf3aca"
+    },
+    {
+      "file": "preload.cjs",
+      "sha256": "54701fbfecf04dd64b81941289cb9b59c2d3327e62be7902b1bbbce4b6d8e6a5"
+    },
+    {
+      "file": "clipboard.cjs",
+      "sha256": "48c41db2d51102ecbe8c890ce2d68cf1b832a9ac26d831a2e1a73bcc597f3450"
+    },
+    {
+      "file": "settings.cjs",
+      "sha256": "5740e16f3fc35a7f36f6633d91d29e0a0fa2429500b900006b7b360dee8e7f14"
+    },
+    {
+      "file": "index.html",
+      "sha256": "3df6721988d67dd443f58465bcdea9698b217fc7f6f2395e356e77f26e20be4a"
+    },
+    {
+      "file": "style.css",
+      "sha256": "a803cc5d611badc2f96e83344dbb57ba14a716e71819561bded54e11c8172cb4"
+    },
+    {
+      "file": "package.json",
+      "sha256": "3bceca9306d2ed607a77aa51d401b310072b4482e0360f793ffaeb32329199cc"
+    },
+    {
+      "file": "dist/app.js",
+      "sha256": "b544a4cfde31c5bae7f1534732892b2301474728761388c5f2a8d2390a7bf407"
+    },
+    {
+      "file": "dist/worker.js",
+      "sha256": "3e0b4b6d3ea84f49f004f8d2901dad0b91d769321eda66bf0b1cf346be8aa68c"
+    }
+  ],
+  "tests": {
+    "source": {
+      "regression": 21,
+      "interaction": 14,
+      "render": 44,
+      "semantic": 22
+    },
+    "portable": {
+      "regression": 21,
+      "interaction": 14,
+      "render": 44,
+      "semantic": 22
+    }
+  },
+  "totalPerBuild": 101
+}

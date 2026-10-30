@@ -1,8 +1,8 @@
-# Compositor Windows 0.4 预览版
+# Compositor Windows 0.5 预览版
 
 这是基于 **[Robbie Tilton](https://github.com/robbietilton) 的 [Compositor](https://github.com/robbietilton/Compositor)** 的功能与交互模型改写的 **非官方 Windows 客户端**。原始版权为 **Copyright (c) 2026 Wonder Assembly LLC**，采用 MIT 许可证，原版权声明完整保留。Windows 改写由 [huaixu40](https://github.com/huaixu40) 维护，使用 Electron / WebGPU / Canvas 独立实现，不是原作者官方发布或背书的版本。
 
-原版 Swift/macOS 源码完整保留，新增代码位于 `windows/`。它不是原版全功能移植，也不等同于 Photoshop。[下载本版便携包](https://github.com/huaixu40/Compositor-Windows/releases/tag/windows-v0.4.0)。
+原版 Swift/macOS 源码完整保留，新增代码位于 `windows/`。它不是原版全功能移植，也不等同于 Photoshop。[下载本版便携包](https://github.com/huaixu40/Compositor-Windows/releases/tag/windows-v0.5.0)。
 
 ## 启动
 
@@ -10,7 +10,15 @@
 
 本次构建目标为 Windows x64，已在当前 Windows 电脑运行验证。未在其他电脑、Windows ARM 或 32 位 Windows 上验证。程序未做发行签名。
 
-## 0.4 渲染与项目升级
+## 0.5 文字、路径与变形
+
+T：点击创建点文字，拖动创建段落框；点击选中的文字可继续编辑。P：钢笔点击建节点，拖动生成手柄，Alt 断开联动，Enter 提交、Esc 取消。U：矩形、椭圆、直线和多边形。Ctrl+T：缩放/旋转、透视/倾斜、3×3 网格；拖动松开后后台更新像素预览，Enter 提交，Esc 取消。
+
+文字、路径、矢量蒙版和变形在 .cwin 中保留编辑参数。需要像素修画或移动选区内容时先显式栅格化；变形后编辑文字/路径前先重置变形。重置变形还原原图与原蒙版，保留当前左上位置。PSD 对不支持的结构显示转换报告。
+
+完整说明见仓库 [EDITING-0.5.md](https://github.com/huaixu40/Compositor-Windows/blob/main/docs/windows/EDITING-0.5.md)。0.5 项目不要用 0.4 编辑并保存，旧版本无法保留新增的变形原图资源。
+
+## 0.4 渲染与项目升级（保留）
 
 设置新增“渲染方式”：自动优先选择 WebGPU，或使用 CPU 兼容模式。选择会保存，下次启动恢复。设备丢失或纹理分配失败会自动回退，原始图层及撤销记录不变。重新选择自动可重试 GPU。
 
@@ -77,7 +85,8 @@ Ctrl+C 复制选区，无选区复制整层；Ctrl+Shift+C 复制合并结果；
 | Levels / Curves / Exposure / Invert 调整图层 | 导入、创建、编辑和导出保留参数；支持 RGB / 单通道编辑，Windows 显示为近似预览 |
 | PSD 蒙版浓度 / 羽化 | 导入时近似烘焙为有效覆盖像素；羽化半径上限 256 px，不保留浓度 / 羽化滑块参数 |
 | 本客户端的逐层滤镜 | `.cwin` 中保持可编辑；导出 PSD 时烘焙到各层像素 |
-| 文字、智能对象、矢量 | 使用 PSD 中的缓存像素；不保留其可编辑语义，导入前提示 |
+| 文字、矢量 | 支持统一样式横排文字、简单单路径/纯色形状与矢量蒙版；其他结构转换为缓存像素并提示 |
+| 智能对象 | 使用缓存像素；不保留其源文件 |
 | 图层效果、剪贴关系、其他调整图层、Blend If、特殊遮罩/画板 | 报告后转换或丢弃；需要保持原始观感时可选择“Open merged preview”作为单层打开 |
 | CMYK、16/32-bit、PSB | 明确拒绝打开，需先在原软件中另存 8-bit RGB PSD |
 | ICC、色彩精度 | 使用浏览器 sRGB 工作空间；不提供 Photoshop 级色彩管理，不保证逐像素一致 |
@@ -99,7 +108,7 @@ Ctrl+C 复制选区，无选区复制整层；Ctrl+Shift+C 复制合并结果；
 
 项目输入最大 512 MB，图片输入最大 256 MB；画布/单张图片最多 8192 px 单边且不超过 1600 万像素；导入文档的累计像素/蒙版预算约 6400 万像素；最多 500 层/32 层嵌套。撤销最多 20 步，按 128 MB 像素预算裁剪历史，单个大快照可能超过此预算。
 
-这是 WebGPU / Canvas 预览实现，大图、多层模糊或 CPU 回退可能卡顿。尚未移植 Camera Raw、内容识别修复、自动抠图、文字编辑、钢笔路径、自由扭曲、完整高级图层效果与色彩管理。支持新建图层组和跨组拖放。
+这是 WebGPU / Canvas 预览实现，大图、多层模糊或 CPU 回退可能卡顿。尚未移植 Camera Raw、内容识别修复、自动抠图、完整高级图层效果与色彩管理。支持新建图层组和跨组拖放。
 
 ## 开发与复现
 
@@ -117,9 +126,9 @@ npm.cmd run test:performance
 npm.cmd run package
 ```
 
-0.4 的验证记录见仓库 `docs/windows/VALIDATION-0.4.md`。`npm test` 启动实际 Electron renderer，运行像素/PSD/项目/工具/IPC 文件读写验证，结果写入 `output/test-results.json`，界面截图写入 `output/editor.png`。测试使用自建语义样本与 ag-psd 公开的两个 PSD 样本。测试通过不代表经过 Adobe Photoshop 的实机互操作验收；当前没有在 Photoshop 中打开导出文件验证。
+0.5 的验证记录见仓库 `docs/windows/VALIDATION-0.5.md`。`npm test` 启动实际 Electron renderer，运行像素/PSD/项目/工具/IPC 文件读写验证，结果写入 `output/test-results.json`，界面截图写入 `output/editor.png`。测试使用自建语义样本与 ag-psd 公开的两个 PSD 样本。测试通过不代表经过 Adobe Photoshop 的实机互操作验收；当前没有在 Photoshop 中打开导出文件验证。
 
-`npm run package` 生成 `release/Compositor-Windows-0.4.0/`，为防误覆盖会拒绝已有同名发布目录。重新打包前请先自行归档旧目录。
+`npm run package` 生成 `release/Compositor-Windows-0.5.0/`，为防误覆盖会拒绝已有同名发布目录。重新打包前请先自行归档旧目录。
 
 ## 来源与许可
 

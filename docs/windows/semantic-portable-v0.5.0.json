@@ -1,0 +1,97 @@
+{
+  "timestamp": "2026-10-30T00:09:06.548Z",
+  "passed": 22,
+  "failed": 0,
+  "results": [
+    {
+      "name": "Point text uses actual keyboard input, IME event guard, and one undo",
+      "passed": true
+    },
+    {
+      "name": "Text cancel preserves content; style edits remain editable after save/reopen",
+      "passed": true
+    },
+    {
+      "name": "Paragraph drag, font substitution warning and text overflow",
+      "passed": true
+    },
+    {
+      "name": "Editable text rejects destructive painting until explicit rasterize",
+      "passed": true
+    },
+    {
+      "name": "Mouse creates editable rectangle shape",
+      "passed": true
+    },
+    {
+      "name": "Mouse creates editable ellipse shape",
+      "passed": true
+    },
+    {
+      "name": "Mouse creates editable line shape",
+      "passed": true
+    },
+    {
+      "name": "Mouse creates editable polygon shape",
+      "passed": true
+    },
+    {
+      "name": "Pen cubic handles, node insertion/deletion, cancellation and undo",
+      "passed": true
+    },
+    {
+      "name": "Path becomes selection and an editable vector mask on layer below",
+      "passed": true
+    },
+    {
+      "name": "Free transform corner and rotation preview cancel; commit is one undo",
+      "passed": true
+    },
+    {
+      "name": "Perspective corners and mesh controls preserve originals across project saves",
+      "passed": true
+    },
+    {
+      "name": "Reset deformation restores original pixels and can be undone",
+      "passed": true
+    },
+    {
+      "name": "Worker PSD text and shape export/import retain editable parameters",
+      "passed": true
+    },
+    {
+      "name": "Deformed PSD is explicitly named raster copy",
+      "passed": true
+    },
+    {
+      "name": "Text tool click edits existing layer instead of adding another",
+      "passed": true
+    },
+    {
+      "name": "Semantic layers survive actual file save and reopen",
+      "passed": true
+    },
+    {
+      "name": "PSD conversion report cancellation performs no file write",
+      "passed": true
+    },
+    {
+      "name": "Warp worker identity, mirror, mesh displacement and alpha quality",
+      "passed": true
+    },
+    {
+      "name": "Folded deformation, mismatched originals and pending worker cancellation are rejected",
+      "passed": true
+    },
+    {
+      "name": "Vector mask PSD roundtrip keeps coverage and disabled state",
+      "passed": true
+    },
+    {
+      "name": "Unsupported mixed-style PSD text is reported as cached pixels",
+      "passed": true
+    }
+  ],
+  "rendererErrors": [],
+  "note": "Chinese insertion uses real keyboard insertText; composition guards use synthetic DOM composition events, not the native Windows candidate UI."
+}

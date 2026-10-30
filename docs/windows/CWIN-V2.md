@@ -9,7 +9,7 @@ macOS `.comp` format and schema are unchanged.
 The writer uses stored ZIP entries (PNG is already compressed). The reader also
 accepts deflated entries. v1 JSON documents remain readable; save upgrades to a
 new v2 copy, and the desktop refuses to overwrite an imported source path.
-Older Windows releases cannot read v2.
+Windows 0.3 and earlier cannot read v2. Do not edit and resave 0.5 documents in 0.4: its reader cannot preserve the additional original deformation resources.
 
 Required manifest fields:
 
@@ -51,6 +51,27 @@ are preserved but have no supported editing/rendering schema in 0.4. Preservatio
 of these fields does **not** imply corresponding tool or PSD support. RAW decode
 and high-precision processing remain future work. Export uses the 8-bit preview
 and warns when a document contains original high-precision/RAW resources.
+
+## 0.5 semantic schema (additive v2 extension)
+
+Each supported semantic object carries its own `version: 1`. The ZIP container
+remains v2; the original macOS project format is unchanged. Cached `image` remains
+the authoritative display resource until an explicit semantic edit regenerates it.
+
+- `text`: content, font, size, RGB color, tracking (px), leading (multiplier),
+  alignment, bold/italic, point/box mode and box width/height. Optional `psdSource`
+  and `psdOrigin` preserve supported imported text metadata until editing.
+- `path` / `vectorMask`: nodes with anchor x/y, absolute local in/out handles and
+  linked flag; closed, fillEnabled, fill, stroke and strokeWidth. One cubic path.
+  A vector mask also retains a grayscale coverage cache in `mask`.
+- `warp`: mode perspective (4 points) or mesh (9 row-major points), normalized
+  by original image width/height; output bounds x/y/width/height. Mesh uses 8 affine
+  triangles. Folded or collapsed cells are rejected; consistent mirrored winding
+  is allowed. `originalImage` and optional `originalMask` reference independent
+  PNG resources. Original masks must match original image dimensions; bounds
+  must match the cached image dimensions. Total extra original PNGs: 64 MP.
+- Unknown reserved metadata from 0.4 remains preserved. It is not an editable
+  tool schema and is not an assertion of effect or RAW support.
 
 ## Validation and limits
 

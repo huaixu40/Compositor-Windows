@@ -1,6 +1,17 @@
 // Translate UI bindings only. Document titles, layer names and pixel content are user data.
 let language = 'en';
 const zh = {
+  "Uniform horizontal text and simple Bezier paths retain editable parameters. Unsupported text, vectors and smart objects use cached pixels with a conversion report. T text, P pen, U shape, Ctrl+T transform; Enter applies and Esc cancels. Deformations export as named raster copies; keep .cwin originals. Camera Raw, healing, automatic cutout and advanced layer effects remain pending. Photoshop interoperability and the native Windows IME candidate window remain unverified. CMYK, 16/32-bit PSD, PSB and original .comp projects are unsupported.": "统一样式的横排文字和简单贝塞尔路径保留可编辑参数；不支持的文字、矢量和智能对象使用缓存像素并提示转换。T 文字、P 钢笔、U 形状、Ctrl+T 变换；Enter 提交、Esc 取消。变形导出为标注的栅格副本，原始数据请保存 .cwin。Camera Raw、修复、自动抠图和高级图层效果仍待实现。Photoshop 实机互操作与 Windows 原生输入法候选窗尚未验收。暂不支持 CMYK、16/32 位 PSD、PSB 及原版 .comp。",
+  "Export a layered PSD copy?\n\nSupported text and vector parameters remain editable. Pixel filters and deformations use raster copies, with conversion details shown next. Save a .cwin project to retain editable originals.": "导出分层 PSD 副本？\n\n受支持的文字和矢量参数保留编辑能力。像素滤镜及变形将导出为栅格副本，相关转换会在下一步列出。请同时保存 .cwin 项目以保留可编辑原始数据。",
+
+  'PSD export report':'PSD 导出转换报告','Export copy':'导出副本',
+  'The following items will be converted in the PSD copy. Keep a .cwin project to retain editable originals.':'下列内容将在 PSD 副本中转换。请保留 .cwin 项目，以保存可编辑原始数据。',
+  'Editable text parameters are retained; cached preview and system fonts may differ after editing.':'保留可编辑文字参数；编辑后系统字体和排版可能与原缓存预览不同。',
+  'Editable Bezier path is retained; vector rendering is approximate.':'保留可编辑贝塞尔路径；矢量渲染为近似实现。',
+  'Deformation exports as a raster copy; original pixels and editable deformation remain in .cwin.':'变形导出为标注的栅格副本；原始像素和可编辑变形保留在 .cwin 中。',
+  'Text with pixel filters exports as a raster copy.':'带像素滤镜的文字导出为栅格副本。','Filtered vector content exports as a raster copy.':'带像素滤镜的矢量内容导出为栅格副本。',
+  'Font unavailable; editing uses a system fallback: ':'字体不可用，编辑时使用系统替代字体：',
+  'Invalid text parameters.':'文字参数无效。','Invalid path parameters.':'路径参数无效。','Invalid deformation.':'变形参数无效。','Deformation folds or collapses.':'控制点造成翻折或退化，请调整后重试。','Missing deformation original.':'缺少变形原图或有效边界。',
   'Exporting…':'正在导出…',
   'Document changed; background result was discarded.':'文档已更改，后台结果已丢弃。',
   'This export uses the 8-bit preview. Original high-precision pixels and RAW data are kept only in a .cwin project. Continue?':'此次导出使用 8 位预览。原始高精度像素和 RAW 数据仅保留在 .cwin 项目中，是否继续？',
@@ -14,7 +25,7 @@ const zh = {
   'Invalid project PNG.':'项目 PNG 资源无效。','Invalid selection dimensions.':'选区尺寸无效。','Missing original RAW resource.':'原始 RAW 资源缺失。',
   'Saving project…':'正在保存项目…','Opening project…':'正在打开项目…','Canceled':'已取消','Rendering':'渲染方式','Automatic (GPU preferred)':'自动（优先 GPU）','Compatibility (CPU)':'兼容模式（CPU）','GPU acceleration active':'正在使用 GPU 加速','Compatibility renderer active':'正在使用兼容渲染',
   "M rectangle / Shift+M ellipse · L lasso / Shift+L polygon · W wand · C crop · G gradient / Shift+G bucket · H hand · Z zoom. Ctrl+C copy · Ctrl+Shift+C merged copy · Ctrl+X cut · Ctrl+V paste · Ctrl+A select all · Ctrl+Shift+D invert selection. Right-click canvas or layers for actions. Drag layer rows to reorder or enter groups. Move selection pixels: Enter apply, Esc cancel.": "M 矩形 / Shift+M 椭圆 · L 套索 / Shift+L 多边形 · W 魔棒 · C 裁剪 · G 渐变 / Shift+G 油漆桶 · H 抓手 · Z 缩放。Ctrl+C 复制 · Ctrl+Shift+C 合并复制 · Ctrl+X 剪切 · Ctrl+V 粘贴 · Ctrl+A 全选 · Ctrl+Shift+D 反选。右键画布或图层显示操作，拖动图层行可排序或编组。移动选区内容：Enter 提交，Esc 取消。",
-  'WINDOWS · PREVIEW': 'WINDOWS · 预览版', 'Compositor Windows · 0.4 preview': 'Compositor Windows · 0.4 预览版',
+  'WINDOWS · PREVIEW': 'WINDOWS · 预览版', 'Compositor Windows · 0.5 preview': 'Compositor Windows · 0.5 预览版',
   'Settings': '设置', 'Language': '语言', 'Interface language': '界面语言', 'Saved automatically. Changes take effect immediately.': '自动保存，切换后立即生效。',
   'New': '新建', 'Open…': '打开…', 'Add image…': '添加图片…', 'Save project': '保存项目', 'Export PSD': '导出 PSD',
   'Compatibility and shortcuts': '兼容性与快捷键', '↶ Undo': '↶ 撤销', '↷ Redo': '↷ 重做', 'Size': '大小', 'Flow': '流量', 'Hardness': '硬度', 'Brush color': '画笔颜色',

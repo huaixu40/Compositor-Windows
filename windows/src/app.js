@@ -1,4 +1,7 @@
 import { readPsdJob, exportJob } from './jobs/files.js';
+import {psdExportNotes} from './semantic-psd.js';
+import {fontAvailable} from './semantic.js';
+import {warpJob} from './jobs/warp.js';
 import { Renderer } from './render/renderer.js';
 import { installInteractions } from './interactions.js';
 import { t, message as translateMessage, bindStaticUI, setLanguage, getLanguage } from './i18n.js';
@@ -16,7 +19,7 @@ function toast(message) { $('toast').textContent = translateMessage(message); $(
 function status(message) { $('status').textContent = translateMessage(message); }
 function selected() { return findLayer(doc, active); }
 function markDirty() { revision++; dirty = true; window.desktop?.dirty(true); }
-function checkpoint() { doc._selection=selection; history.push(doc); markDirty(); }
+function checkpoint() { doc._active=active;doc._selection=selection; history.push(doc); markDirty(); }
 function edit(action) { if (busy) return; try { checkpoint(); action(); if (welcome) { welcome = false; $('welcome').style.display = 'none'; $('canvas-wrap').style.display = 'block'; fit(); } render(); } catch (error) { toast(error.message); } }
 function editable() { const l = selected(); if (!l?.image) { toast('Select a pixel layer first.'); return null; } return l; }
 function discard() { return !dirty || confirm(t('Discard unsaved changes? Save a .cwin project to keep your editable layers and filters.')); }
@@ -25,7 +28,7 @@ function fit() { const box = $('viewport'); zoom = Math.min(1, (box.clientWidth 
 function sizeView() { const wrap = $('canvas-wrap'); wrap.style.width = `${doc.width * zoom}px`; wrap.style.height = `${doc.height * zoom}px`; for (const id of ['canvas', 'gpu-canvas', 'overlay']) { $(id).style.width = `${doc.width * zoom}px`; $(id).style.height = `${doc.height * zoom}px`; } $('zoom-value').textContent = `${Math.round(zoom * 100)}%`; }
 function renderPixels() {
   const c = $('canvas'); if (c.width !== doc.width || c.height !== doc.height) { c.width = doc.width; c.height = doc.height; $('overlay').width = doc.width; $('overlay').height = doc.height; }
-  renderer.render(doc,preview); drawOverlay();
+  renderer.render(interactions?.previewDoc||doc,preview); drawOverlay();
 }
 function drawOverlay() {
   const ctx = $('overlay').getContext('2d'); ctx.clearRect(0, 0, doc.width, doc.height); ctx.lineWidth = 1 / zoom;
@@ -80,6 +83,7 @@ async function readFile(add = false) {
       if (add) throw new Error('Use Open to load a PSD document. Add image accepts PNG, JPEG and WebP.');
       status('Decoding PSD…'); await new Promise(resolve => requestAnimationFrame(resolve));
       const result = await background(t('Decoding PSD…'),options=>readPsdJob(file.bytes,file.name,options));
+      walk(result.doc.layers,l=>{if(l.text&&!fontAvailable(l.text.font))result.notes.push(l.name+': '+t('Font unavailable; editing uses a system fallback: ')+l.text.font);});
       if (result.notes.length) { const choice = await report(result.notes, Boolean(result.preview)); if (choice === 'cancel') return; next = choice === 'preview' ? result.preview : result.doc; } else next = result.doc;
     } else if (ext === 'cwin') { if (add) throw new Error('Use Open to load a project.'); next = await background(t('Opening project…'),options=>parseProject(file.bytes,options)); }
     else {
@@ -90,9 +94,11 @@ async function readFile(add = false) {
     adopt(next); toast(t('Opened {name}', {name:file.name}));
   });
 }
-function report(notes, hasPreview) {
+function report(notes, hasPreview, exporting=false) {
   $('report-content').replaceChildren(); const p = document.createElement('p'); p.className = 'warning'; p.textContent = t('This PSD contains features that this preview cannot reproduce exactly. The editable copy converts or drops the items below. Your original file is protected; use the merged preview to retain the stored appearance as one layer.'); $('report-content').append(p);
   const ul = document.createElement('ul'); for (const note of notes) { const li = document.createElement('li'); li.textContent = translateMessage(note); ul.append(li); } $('report-content').append(ul);
+  $('report-title').textContent=t(exporting?'PSD export report':'PSD conversion report');$('report-accept').textContent=t(exporting?'Export copy':'Open editable copy');$('report-preview').hidden=exporting;
+  if(exporting)p.textContent=t('The following items will be converted in the PSD copy. Keep a .cwin project to retain editable originals.');
   $('report-preview').disabled = !hasPreview; $('report-dialog').showModal();
   return new Promise(resolve => { const finish = value => { $('report-dialog').close(); resolve(value); }; $('report-cancel').onclick = () => finish('cancel'); $('report-preview').onclick = () => finish('preview'); $('report-accept').onclick = () => finish('edit'); $('report-dialog').oncancel = event => { event.preventDefault(); finish('cancel'); }; });
 }
@@ -100,7 +106,8 @@ async function save(extension) {
   await run(async () => {
     let highPrecision=false;walk(doc.layers,l=>{if(l.highPrecision||l.raw)highPrecision=true;});
     if(extension!=='cwin'&&highPrecision&&!confirm(t('This export uses the 8-bit preview. Original high-precision pixels and RAW data are kept only in a .cwin project. Continue?')))return;
-    if (extension === 'psd' && !confirm(t('Export a layered PSD copy?\n\nWindows filters and transforms are baked into each pixel layer. Masks, groups, visibility, opacity and supported blend modes remain editable. Save a .cwin project as well to retain the filter stack.'))) return;
+    if (extension === 'psd' && !confirm(t('Export a layered PSD copy?\n\nSupported text and vector parameters remain editable. Pixel filters and deformations use raster copies, with conversion details shown next. Save a .cwin project to retain editable originals.'))) return;
+    if(extension==='psd'){const notes=psdExportNotes(doc);if(notes.length&&await report(notes,false,true)==='cancel')return;}
     let bytes;
     if (extension === 'psd') bytes = await background(t('Exporting…'),options=>exportJob(doc,extension,options));
     else if (extension === 'cwin') bytes = await background(t('Saving project…'),options=>serializeProjectV2(doc,options));
@@ -202,7 +209,7 @@ $('overlay').onpointermove = event => {
 function endDrag() { if (!drag) return; drag = null; render(); }
 $('overlay').onpointerup = endDrag; $('overlay').onpointercancel = endDrag;
 
-for (const [id, fn] of Object.entries({ open: () => readFile(), 'welcome-open': () => readFile(), import: () => readFile(true), save: () => save('cwin'), 'export-psd': () => save('psd'), 'export-png': () => save('png'), 'export-jpg': () => save('jpg'), demo: () => { if (discard()) adopt(demoDocument(), true); }, help: () => $('help-dialog').showModal(), fit, actual: () => { zoom = 1; sizeView(); drawOverlay(); }, 'zoom-in': () => { zoom = Math.min(8, zoom * 1.25); sizeView(); drawOverlay(); }, 'zoom-out': () => { zoom = Math.max(.03, zoom / 1.25); sizeView(); drawOverlay(); }, deselect: () => { selection = null; drawOverlay(); }, undo: () => { if (history.past.length) { doc = history.undo(doc); active = findLayer(doc, active)?.id || doc.layers[0]?.id; target = 'image'; markDirty(); render(); } }, redo: () => { if (history.future.length) { doc = history.redo(doc); active = findLayer(doc, active)?.id || doc.layers[0]?.id; target = 'image'; markDirty(); render(); } }, 'add-layer': () => edit(() => { const l = layer('Layer ' + (doc.layers.length + 1), canvas(doc.width, doc.height)); doc.layers.unshift(l); active = l.id; target = 'image'; }), duplicate: () => { const l = selected(); if (l) edit(() => { const duplicated = cloneLayer(l); walk([duplicated], n => n.id = crypto.randomUUID()); duplicated.name += ' copy'; const list = siblings(doc, l.id); list.splice(list.indexOf(l), 0, duplicated); active = duplicated.id; }); }, 'delete-layer': () => { const l = selected(); if (l) edit(() => { const list = siblings(doc, l.id); list.splice(list.indexOf(l), 1); active = doc.layers[0]?.id; target = 'image'; }); }, 'add-mask': () => { const l = selected(); if (l) { if (l.mask) { target = 'mask'; tool = 'brush'; render(); } else edit(() => { l.mask = canvas(l.image?.width || doc.width, l.image?.height || doc.height); const ctx = l.mask.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, l.mask.width, l.mask.height); target = 'mask'; tool = 'brush'; }); $('color').value = '#000000'; updateTool(); } }, flip: () => { const l = editable(); if (l) edit(() => l.flip = !l.flip); }, 'reset-transform': () => { const l = editable(); if (l) edit(() => { l.scale = 1; l.rotation = 0; l.flip = false; }); }, fill: () => { const l = target === 'mask' ? selected() : editable(); if (l && (target !== 'mask' || l.mask)) edit(() => { const surface = target === 'mask' ? l.mask : l.image, ctx = surface.getContext('2d'); ctx.save(); clipSelection(ctx, l); ctx.fillStyle = target === 'mask' ? maskColor($('color').value) : $('color').value; ctx.fillRect(0, 0, surface.width, surface.height); ctx.restore(); invalidate(l); }); } })) $(id).onclick = fn;
+for (const [id, fn] of Object.entries({ open: () => readFile(), 'welcome-open': () => readFile(), import: () => readFile(true), save: () => save('cwin'), 'export-psd': () => save('psd'), 'export-png': () => save('png'), 'export-jpg': () => save('jpg'), demo: () => { if (discard()) adopt(demoDocument(), true); }, help: () => $('help-dialog').showModal(), fit, actual: () => { zoom = 1; sizeView(); drawOverlay(); }, 'zoom-in': () => { zoom = Math.min(8, zoom * 1.25); sizeView(); drawOverlay(); }, 'zoom-out': () => { zoom = Math.max(.03, zoom / 1.25); sizeView(); drawOverlay(); }, deselect: () => { selection = null; drawOverlay(); }, undo: () => { if (history.past.length) { doc._active=active;doc = history.undo(doc); active = findLayer(doc,doc._active)?.id || findLayer(doc, active)?.id || doc.layers[0]?.id; target = 'image'; markDirty(); render(); } }, redo: () => { if (history.future.length) { doc._active=active;doc = history.redo(doc); active = findLayer(doc,doc._active)?.id || findLayer(doc, active)?.id || doc.layers[0]?.id; target = 'image'; markDirty(); render(); } }, 'add-layer': () => edit(() => { const l = layer('Layer ' + (doc.layers.length + 1), canvas(doc.width, doc.height)); doc.layers.unshift(l); active = l.id; target = 'image'; }), duplicate: () => { const l = selected(); if (l) edit(() => { const duplicated = cloneLayer(l); walk([duplicated], n => n.id = crypto.randomUUID()); duplicated.name += ' copy'; const list = siblings(doc, l.id); list.splice(list.indexOf(l), 0, duplicated); active = duplicated.id; }); }, 'delete-layer': () => { const l = selected(); if (l) edit(() => { const list = siblings(doc, l.id); list.splice(list.indexOf(l), 1); active = doc.layers[0]?.id; target = 'image'; }); }, 'add-mask': () => { const l = selected(); if (l) { if (l.mask) { target = 'mask'; tool = 'brush'; render(); } else edit(() => { l.mask = canvas(l.image?.width || doc.width, l.image?.height || doc.height); const ctx = l.mask.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, l.mask.width, l.mask.height); target = 'mask'; tool = 'brush'; }); $('color').value = '#000000'; updateTool(); } }, flip: () => { const l = editable(); if (l) edit(() => l.flip = !l.flip); }, 'reset-transform': () => { const l = editable(); if (l) edit(() => { l.scale = 1; l.rotation = 0; l.flip = false; }); }, fill: () => { const l = target === 'mask' ? selected() : editable(); if (l && (target !== 'mask' || l.mask)) edit(() => { const surface = target === 'mask' ? l.mask : l.image, ctx = surface.getContext('2d'); ctx.save(); clipSelection(ctx, l); ctx.fillStyle = target === 'mask' ? maskColor($('color').value) : $('color').value; ctx.fillRect(0, 0, surface.width, surface.height); ctx.restore(); invalidate(l); }); } })) $(id).onclick = fn;
 $('new').onclick = () => { if (!discard()) return; $('new-dialog').returnValue = 'cancel'; $('new-dialog').showModal(); };
 $('new-dialog').onclose = () => { if ($('new-dialog').returnValue === 'create') { try { adopt(newDocument(Number($('new-width').value), Number($('new-height').value)), true); } catch (error) { toast(error.message); } } };
 for (const [id, direction] of [['layer-up', -1], ['layer-down', 1]]) $(id).onclick = () => { const l = selected(); if (!l) return; const list = siblings(doc, l.id), i = list.indexOf(l), j = i + direction; if (j >= 0 && j < list.length) edit(() => [list[i], list[j]] = [list[j], list[i]]); };
@@ -236,7 +243,7 @@ $('renderer-mode').onchange=async()=>{const mode=$('renderer-mode').value;try{co
 window.appReady = window.desktop.getSettings().then(settings => {renderer.setMode(settings.renderer||'auto');$('renderer-mode').value=renderer.mode;refreshLanguage(settings.language);}).catch(error => { refreshLanguage('en'); toast(error.message); });
 function maskColor(color) { const rgb = color.slice(1).match(/../g).map(x => parseInt(x, 16)); const gray = Math.round(.2126 * rgb[0] + .7152 * rgb[1] + .0722 * rgb[2]); return `rgb(${gray},${gray},${gray})`; }
 $('invert-mask').onclick = () => { const l = selected(); if (l?.mask) edit(() => { const ctx = l.mask.getContext('2d'), data = ctx.getImageData(0, 0, l.mask.width, l.mask.height); for (let i = 0; i < data.data.length; i += 4) for (let c = 0; c < 3; c++) data.data[i + c] = 255 - data.data[i + c]; ctx.putImageData(data, 0, 0); invalidate(l); }); };
-$('remove-mask').onclick = () => { const l = selected(); if (l?.mask) edit(() => { l.mask = null; target = 'image'; }); };
+$('remove-mask').onclick = () => { const l = selected(); if (l?.mask) edit(() => { l.mask = null;delete l.vectorMask;if(l.warp)l.originalMask=null; target = 'image'; }); };
 $('new-adjustment').onclick = () => {
   if (busy) return;
   const type = $('adjustment-type').value, l = layer(t(type[0].toUpperCase() + type.slice(1)), null, {adjustment: defaultAdjustment(type)});
@@ -250,7 +257,7 @@ interactions = installInteractions({
   get doc(){return doc;},set doc(v){doc=v;},get active(){return active;},set active(v){active=v;},get selection(){return selection;},set selection(v){selection=v;doc._selection=v;},get target(){return target;},set target(v){target=v;},get tool(){return tool;},set tool(v){tool=v;},get zoom(){return zoom;},set zoom(v){zoom=v;},get busy(){return busy;},get history(){return history;},checkpoint,render,renderPixels,drawOverlay,fit,sizeView,toast,
   reveal(){if(welcome){welcome=false;$('welcome').style.display='none';$('canvas-wrap').style.display='block';fit();}}
 });
-window.editorTest = { background,markDirty,readPsdJob,exportJob,canvas,layer,composite,BLENDS,invalidate,serializeProject,renderer,serializeProjectV2,parseProject, interactions, adopt, newDocument, demoDocument, selected, get doc(){return doc;}, get selection(){return selection;}, get active(){return active;}, get history(){return history;}, get zoom(){return zoom;} };
+window.editorTest = { warpJob,psdExportNotes,readPsd,writePsd,background,markDirty,readPsdJob,exportJob,canvas,layer,composite,BLENDS,invalidate,serializeProject,renderer,serializeProjectV2,parseProject, interactions, adopt, newDocument, demoDocument, selected, get doc(){return doc;}, get selection(){return selection;}, get active(){return active;}, get history(){return history;}, get zoom(){return zoom;} };
 render();
 if (new URLSearchParams(location.search).get('demo') === '1') adopt(demoDocument());
 

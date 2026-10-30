@@ -1,0 +1,356 @@
+{
+  "timestamp": "2026-10-30T00:05:21.285Z",
+  "passed": 44,
+  "failed": 0,
+  "results": [
+    {
+      "name": "Actual NVIDIA WebGPU device",
+      "passed": true,
+      "detail": {
+        "vendor": "nvidia",
+        "architecture": "lovelace"
+      }
+    },
+    {
+      "name": "GPU/CPU blend normal",
+      "passed": true,
+      "detail": {
+        "max": 0.7999999999999972,
+        "mean": 0.25,
+        "over3": 0
+      }
+    },
+    {
+      "name": "GPU/CPU blend multiply",
+      "passed": true,
+      "detail": {
+        "max": 0.3999999999999915,
+        "mean": 0.19999999999998974,
+        "over3": 0
+      }
+    },
+    {
+      "name": "GPU/CPU blend screen",
+      "passed": true,
+      "detail": {
+        "max": 0.4000000000000057,
+        "mean": 0.25,
+        "over3": 0
+      }
+    },
+    {
+      "name": "GPU/CPU blend overlay",
+      "passed": true,
+      "detail": {
+        "max": 1.2000000000000028,
+        "mean": 0.5500000000000014,
+        "over3": 0
+      }
+    },
+    {
+      "name": "GPU/CPU blend darken",
+      "passed": true,
+      "detail": {
+        "max": 0.8000000000000043,
+        "mean": 0.3499999999999874,
+        "over3": 0
+      }
+    },
+    {
+      "name": "GPU/CPU blend lighten",
+      "passed": true,
+      "detail": {
+        "max": 0,
+        "mean": 0,
+        "over3": 0
+      }
+    },
+    {
+      "name": "GPU/CPU blend color dodge",
+      "passed": true,
+      "detail": {
+        "max": 0.8000000000000114,
+        "mean": 0.30000000000000987,
+        "over3": 0
+      }
+    },
+    {
+      "name": "GPU/CPU blend color burn",
+      "passed": true,
+      "detail": {
+        "max": 0.4000000000000057,
+        "mean": 0.20000000000000373,
+        "over3": 0
+      }
+    },
+    {
+      "name": "GPU/CPU blend hard light",
+      "passed": true,
+      "detail": {
+        "max": 0.20000000000000284,
+        "mean": 0.15000000000000002,
+        "over3": 0
+      }
+    },
+    {
+      "name": "GPU/CPU blend soft light",
+      "passed": true,
+      "detail": {
+        "max": 0.3999999999999986,
+        "mean": 0.19999999999999213,
+        "over3": 0
+      }
+    },
+    {
+      "name": "GPU/CPU blend difference",
+      "passed": true,
+      "detail": {
+        "max": 0.20000000000000284,
+        "mean": 0.09999999999999654,
+        "over3": 0
+      }
+    },
+    {
+      "name": "GPU/CPU blend exclusion",
+      "passed": true,
+      "detail": {
+        "max": 0.3999999999999915,
+        "mean": 0.14999999999998986,
+        "over3": 0
+      }
+    },
+    {
+      "name": "GPU/CPU blend hue",
+      "passed": true,
+      "detail": {
+        "max": 0.3999999999999915,
+        "mean": 0.19999999999998974,
+        "over3": 0
+      }
+    },
+    {
+      "name": "GPU/CPU blend saturation",
+      "passed": true,
+      "detail": {
+        "max": 0.4000000000000057,
+        "mean": 0.15000000000000493,
+        "over3": 0
+      }
+    },
+    {
+      "name": "GPU/CPU blend color",
+      "passed": true,
+      "detail": {
+        "max": 0.19999999999998863,
+        "mean": 0.09999999999999432,
+        "over3": 0
+      }
+    },
+    {
+      "name": "GPU/CPU blend luminosity",
+      "passed": true,
+      "detail": {
+        "max": 0.20000000000001705,
+        "mean": 0.15000000000001043,
+        "over3": 0
+      }
+    },
+    {
+      "name": "GPU/CPU tiled group masks and pass-through",
+      "passed": true,
+      "detail": {
+        "max": 0.4000000000000057,
+        "mean": 0.15000000000059677,
+        "over3": 0
+      }
+    },
+    {
+      "name": "GPU/CPU rotated transformed alpha edges",
+      "passed": true,
+      "detail": {
+        "max": 11,
+        "mean": 0.0140625,
+        "over3": 23
+      }
+    },
+    {
+      "name": "GPU/CPU filter exposure",
+      "passed": true,
+      "detail": {
+        "max": 2.4862745098039056,
+        "mean": 0.11996974571078403,
+        "over3": 0
+      }
+    },
+    {
+      "name": "GPU/CPU filter levels",
+      "passed": true,
+      "detail": {
+        "max": 2.435294117647059,
+        "mean": 0.1462297028186271,
+        "over3": 0
+      }
+    },
+    {
+      "name": "GPU/CPU filter curves",
+      "passed": true,
+      "detail": {
+        "max": 2.0470588235294116,
+        "mean": 0.2948270909926456,
+        "over3": 0
+      }
+    },
+    {
+      "name": "GPU/CPU filter hsl",
+      "passed": true,
+      "detail": {
+        "max": 1.698039215686265,
+        "mean": 0.15119964001225425,
+        "over3": 0
+      }
+    },
+    {
+      "name": "GPU/CPU filter balance",
+      "passed": true,
+      "detail": {
+        "max": 1.4823529411764724,
+        "mean": 0.16657666973039137,
+        "over3": 0
+      }
+    },
+    {
+      "name": "GPU/CPU filter bw",
+      "passed": true,
+      "detail": {
+        "max": 1.4823529411764866,
+        "mean": 0.1512005974264711,
+        "over3": 0
+      }
+    },
+    {
+      "name": "GPU/CPU filter sharpen",
+      "passed": true,
+      "detail": {
+        "max": 2.478431372549011,
+        "mean": 0.08412128523284301,
+        "over3": 0
+      }
+    },
+    {
+      "name": "GPU/CPU filter blur",
+      "passed": true,
+      "detail": {
+        "max": 0.34509803921568505,
+        "mean": 0.10738645067401986,
+        "over3": 0
+      }
+    },
+    {
+      "name": "GPU/CPU PSD adjustment levels",
+      "passed": true,
+      "detail": {
+        "max": 1.2980392156862877,
+        "mean": 0.4343137254902122,
+        "over3": 0
+      }
+    },
+    {
+      "name": "GPU/CPU PSD adjustment curves",
+      "passed": true,
+      "detail": {
+        "max": 0.29803921568628766,
+        "mean": 0.1431372549019546,
+        "over3": 0
+      }
+    },
+    {
+      "name": "GPU/CPU PSD adjustment exposure",
+      "passed": true,
+      "detail": {
+        "max": 0.16078431372548607,
+        "mean": 0.0705882352941131,
+        "over3": 0
+      }
+    },
+    {
+      "name": "GPU/CPU PSD adjustment invert",
+      "passed": true,
+      "detail": {
+        "max": 0.8745098039215691,
+        "mean": 0.2813725490195905,
+        "over3": 0
+      }
+    },
+    {
+      "name": "Only changed tiles redraw; cached frames redraw zero tiles",
+      "passed": true,
+      "detail": {
+        "max": 0,
+        "mean": 0,
+        "over3": 0,
+        "tiles": 1
+      }
+    },
+    {
+      "name": "ZIP v2 keeps original 16-bit and float pixels, RAW bytes and semantic data",
+      "passed": true,
+      "detail": {
+        "bytes": 2074
+      }
+    },
+    {
+      "name": "Legacy v1 upgrades to v2 without changing its pixels",
+      "passed": true
+    },
+    {
+      "name": "Worker PSD export/import and PNG export preserve layers and pixels",
+      "passed": true,
+      "detail": {
+        "psdBytes": 1862,
+        "pngBytes": 134
+      }
+    },
+    {
+      "name": "Corrupt ZIP resource fails integrity check",
+      "passed": true
+    },
+    {
+      "name": "Cancelable worker save never changes document",
+      "passed": true
+    },
+    {
+      "name": "Thirty-filter stack uses bounded ping-pong allocations",
+      "passed": true,
+      "detail": {
+        "allocated": 2,
+        "max": 0,
+        "mean": 0,
+        "over3": 0
+      }
+    },
+    {
+      "name": "GPU allocation failure falls back without changing history or pixels",
+      "passed": true
+    },
+    {
+      "name": "GPU device loss keeps pixels, history, and CPU rendering",
+      "passed": true
+    },
+    {
+      "name": "Unavailable WebGPU starts in CPU and can recover",
+      "passed": true
+    },
+    {
+      "name": "Actual Cancel button aborts pending background work without a commit",
+      "passed": true
+    },
+    {
+      "name": "A completed stale job cannot overwrite newer document edits",
+      "passed": true
+    },
+    {
+      "name": "Rendering preference survives settings reload and mode switches",
+      "passed": true
+    }
+  ]
+}

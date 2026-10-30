@@ -2,6 +2,8 @@ import { readPsd, writePsd } from 'ag-psd';
 import { canvas, layer, BLENDS, PSD_ADJUSTMENTS, composite, bakedLayer } from './engine.js';
 import { selectionFromMask, normalizedSelection } from './selection.js';
 import { parseProjectV2 } from './project-v2.js';
+import {importText,exportText,importVector,exportVector} from './semantic-psd.js';
+import {renderPath} from './semantic.js';
 export { serializeProjectV2 } from './project-v2.js';
 
 export function checkPsd(bytes) {
@@ -29,9 +31,9 @@ export function importPsd(bytes, name) {
       if ((l.children || l.adjustment) && l.mask) total += structure.width * structure.height * 2;
       if (l.children) inspect(l.children, depth + 1);
       if (l.blendMode && !BLENDS[l.blendMode] && l.blendMode !== 'pass through') note(`“${l.blendMode}” blend mode becomes Normal.`);
-      if (l.text) note('Text becomes cached pixels; text will no longer be editable.');
+      if (l.text) note(importText(l)?'Editable text parameters are retained; cached preview and system fonts may differ after editing.':'Text becomes cached pixels; text will no longer be editable.');
       if (l.placedLayer) note('Smart object becomes cached pixels; embedded/linked source is not retained.');
-      if (l.vectorMask || l.vectorFill || l.vectorStroke) note('Vector data becomes cached pixels; vector masks are not rendered.');
+      if (l.vectorMask || l.vectorFill || l.vectorStroke) note(importVector(l)?'Editable Bezier path is retained; vector rendering is approximate.':'Vector data becomes cached pixels; vector masks are not rendered.');
       if (l.effects && !l.effects.disabled) note('Layer styles are not rendered or retained in the editable copy.');
       if (l.adjustment) note(PSD_ADJUSTMENTS.includes(l.adjustment.type) ? `${l.adjustment.type} adjustment parameters are retained. Windows preview uses an approximation; Photoshop may render differently.` : 'Photoshop adjustment layer is skipped in the editable copy. Use merged preview for its original appearance.');
       if (l.adjustment && l.blendMode && l.blendMode !== 'normal') note('Adjustment layer blend mode becomes Normal.');
@@ -57,6 +59,7 @@ export function importPsd(bytes, name) {
       const l = layer(n.name || 'Layer', image, { x: n.left || 0, y: n.top || 0, opacity: (n.opacity ?? 1) * (n.fillOpacity ?? 1), visible: !n.hidden, blend: BLENDS[n.blendMode] || (group && n.blendMode === 'pass through') ? (n.blendMode || 'normal') : 'normal' });
       if (group) { l.children = convert(n.children); l.x = l.y = 0; }
       if (n.adjustment) { l.adjustment = structuredClone(n.adjustment); l.x = l.y = 0; l.blend = 'normal'; }
+      const text=importText(n),vector=importVector(n);if(text)l.text=text;if(vector&&image){if(vector.shape)l.path=vector.path;else l.vectorMask=vector.path;}
       if (n.mask) {
         const m = n.mask, mask = canvas(group || n.adjustment ? psd.width : image.width, group || n.adjustment ? psd.height : image.height), ctx = mask.getContext('2d');
         const value = m.defaultColor ?? 255; ctx.fillStyle = `rgb(${value},${value},${value})`; ctx.fillRect(0, 0, mask.width, mask.height);
@@ -76,6 +79,7 @@ export function importPsd(bytes, name) {
         l.mask = mask; l.maskEnabled = !m.disabled;
         if (group && l.blend === 'pass through') l.blend = 'normal';
       }
+      if(l.vectorMask){const mask=renderPath({...l.vectorMask,closed:true,fillEnabled:true},image.width,image.height,true),ctx=mask.getContext('2d'),data=ctx.getImageData(0,0,mask.width,mask.height);for(let i=0;i<data.data.length;i+=4){data.data[i]=data.data[i+1]=data.data[i+2]=data.data[i+3];data.data[i+3]=255;}ctx.putImageData(data,0,0);l.mask=mask;l.maskEnabled=!n.vectorMask.disable;}
       return [l];
     });
   }
@@ -95,7 +99,9 @@ export function exportPsd(doc) {
         return base;
       }
       const baked = bakedLayer(doc, l); base.canvas = baked.image; base.left = baked.x; base.top = baked.y;
-      if (l.mask) {
+      const text=exportText(l),vector=exportVector(l);if(text)base.text=text;if(vector)Object.assign(base,vector);
+      if(l.warp)base.name+=' [raster deformation]';
+      if (l.mask && !(vector&&l.vectorMask)) {
         const maskLayer = { ...l, image: l.mask, filters: [] }, bm = bakedLayer(doc, maskLayer);
         // Rotated mask corners must be black, not transparent white.
         const mask = canvas(bm.image.width, bm.image.height), ctx = mask.getContext('2d'); ctx.fillStyle = '#000'; ctx.fillRect(0, 0, mask.width, mask.height); ctx.drawImage(bm.image, 0, 0);

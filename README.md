@@ -6,7 +6,7 @@
 >
 > An unofficial Windows adaptation of [Compositor by Robbie Tilton](https://github.com/robbietilton/Compositor). The original macOS source and MIT copyright are preserved. The Windows client is a separate Electron/WebGPU/Canvas implementation, not an official release or a feature-complete port.
 
-[下载 Windows 预览版](https://github.com/huaixu40/Compositor-Windows/releases/tag/windows-v0.4.0) · [Windows 详细说明](windows/README-WINDOWS.md) · [原版 README](README.upstream.md) · [许可证](LICENSE)
+[下载 Windows 预览版](https://github.com/huaixu40/Compositor-Windows/releases/tag/windows-v0.5.0) · [Windows 详细说明](windows/README-WINDOWS.md) · [原版 README](README.upstream.md) · [许可证](LICENSE)
 
 ![Compositor Windows 编辑器预览](docs/windows/preview.png)
 
@@ -14,9 +14,17 @@
 
 Compositor 原版是基于 SwiftUI、AppKit、CoreGraphics / CoreImage / Metal 的 macOS 图像编辑器，不能直接在 Windows 上编译运行。本仓库保留原版工程，并在 `windows/` 中新增 Windows 客户端，优先实现 **PSD 图层编辑和常用修图工作流**。
 
-当前版本为 **0.4.0 Preview**。它已能在 Windows 上独立启动、打开图片、编辑图层并保存，但还没有完整复现原版或 Photoshop 的全部功能。以下功能与限制描述的是 Windows 版，不应与原版功能列表混用。
+当前版本为 **0.5.0 Preview**。它已能在 Windows 上独立启动、打开图片、编辑图层并保存，但还没有完整复现原版或 Photoshop 的全部功能。以下功能与限制描述的是 Windows 版，不应与原版功能列表混用。
 
-## 0.4 新增
+## 0.5 新增：文字、路径与变形
+
+- **可编辑文字**：点文字、段落框，中英文内容、字体替代提示、字号、颜色、字距、行距和对齐；编辑可取消、撤销并保存重开。
+- **钢笔与形状**：贝塞尔节点和方向手柄、增删节点、闭合、填充及描边；矩形、椭圆、直线、多边形。路径可转选区或下一图层的可编辑矢量蒙版。
+- **自由变换**：控制点缩放、旋转、倾斜、四角透视及 3×3 网格；后台预览，Enter 提交、Esc 取消，项目保留原始图像与蒙版。
+- **PSD 参数保留**：受支持的统一样式横排文字、简单单路径和矢量蒙版保留编辑能力；复杂内容明确提示转换，变形导出为标注的栅格副本。
+- [操作与限制](docs/windows/EDITING-0.5.md) · [验证记录](docs/windows/VALIDATION-0.5.md)。本版仍是预览版，Windows 原生输入法候选窗和 Photoshop 实机互操作尚未验收。
+
+## 0.4 渲染与项目基础（保留）
 
 - **WebGPU 合成**：图层、蒙版、16 种混合模式、变换及七种滤镜使用 GPU；512 px 分块合成、纹理缓存和局部重绘。模糊使用 Canvas 兼容路径。
 - **自动回退**：无 GPU、设备丢失或分配失败时回到 CPU；设置中可手动选择兼容模式，文档和撤销记录保留。
@@ -34,8 +42,8 @@ Compositor 原版是基于 SwiftUI、AppKit、CoreGraphics / CoreImage / Metal �
 
 ## 下载与启动
 
-1. 打开 [Windows v0.4.0 预发布页面](https://github.com/huaixu40/Compositor-Windows/releases/tag/windows-v0.4.0)。
-2. 下载 `Compositor-Windows-0.4.0-win-x64.zip`，解压到可写目录。
+1. 打开 [Windows v0.5.0 预发布页面](https://github.com/huaixu40/Compositor-Windows/releases/tag/windows-v0.5.0)。
+2. 下载 `Compositor-Windows-0.5.0-win-x64.zip`，解压到可写目录。
 3. 双击解压目录中的 `Compositor-Windows.exe`。
 
 便携包自带运行时，无需安装 Node.js、Python 或 Xcode，正常编辑不需要联网。**请保留整个解压目录，不要只复制 exe。** 当前提供 Windows x64 构建；已在开发者的 Windows 电脑验证，尚未覆盖不同设备的兼容性测试。预览版未做代码签名。
@@ -46,7 +54,8 @@ Compositor 原版是基于 SwiftUI、AppKit、CoreGraphics / CoreImage / Metal �
 |---|---|
 | 文件 | 打开 8-bit RGB PSD、PNG、JPEG、WebP；导出分层 PSD、PNG、JPEG |
 | 图层 | 创建图层组、鼠标排序及跨组拖放、复制、删除、重命名、显隐、透明度、常见混合模式 |
-| 变换 | 移动、缩放、旋转、水平翻转 |
+| 变换 | 移动、缩放、旋转、水平翻转、倾斜、四角透视和 3×3 网格 |
+| 文字与路径 | 点文字、段落文字、贝塞尔路径、四种形状、路径选区及矢量蒙版 |
 | 蒙版 | 像素层、图层组与调整图层的栅格蒙版；软边修画、灰度填充、反相、移除及启用/禁用 |
 | 修图工具 | 画笔、橡皮、仿制、五类选区、裁剪、油漆桶、渐变、吸管、抓手、缩放 |
 | 可回改滤镜 | 曝光/对比度、色阶、RGB 曲线、色相/饱和度、色彩平衡、模糊、锐化、黑白 |
@@ -55,14 +64,14 @@ Compositor 原版是基于 SwiftUI、AppKit、CoreGraphics / CoreImage / Metal �
 | 工作项目 | `.cwin` 保存图层原始像素、蒙版、变换、可编辑滤镜及选区 |
 | 编辑保护 | 撤销/重做、未保存提醒、PSD 转换报告、源文件覆盖保护 |
 
-建议先保存 `.cwin` 工作项目，再导出 PSD 副本。PSD 导出会把本客户端的滤镜和变换烘焙到各个像素图层；原始滤镜参数保留在 `.cwin` 中。
+建议先保存 `.cwin` 工作项目，再导出 PSD 副本。PSD 保留受支持的文字和矢量参数；像素滤镜及自由变形烘焙为栅格副本，原始参数保留在 `.cwin` 中。
 
 ## PSD 兼容性：请先了解
 
 - **支持读写**：普通像素图层、层级、偏移、显隐、透明度、常见混合模式、栅格蒙版。
 - **保留参数、近似预览**：PSD 的 Levels、Curves、Exposure、Invert 调整图层，支持创建和编辑参数。色阶和曲线支持 RGB、红、绿、蓝通道；曲线采用输入/输出点编辑与分段线性预览。
 - **蒙版浓度与羽化**：导入时烘焙为有效栅格覆盖率，导出保留覆盖像素；不保留其原始滑块参数，羽化为近似预览（半径上限 256 px）。
-- **转换为缓存像素**：文字、智能对象、矢量内容，不保留原来的可编辑语义。
+- **文字与矢量**：统一样式的横排文字、简单单路径/纯色形状与矢量蒙版保留可编辑参数；复杂样式、文字变形、多路径或特殊描边等转为缓存像素并提示。智能对象仍使用缓存像素。
 - **提示后转换或丢弃**：复杂图层效果、剪贴关系、其他调整图层、Blend If 和部分特殊遮罩/画板。需要保留文件存储的原始观感时，可选择 `Open merged preview` 以单层打开。
 - **暂不支持**：CMYK、16/32-bit PSD、PSB、原版 `.comp` 项目、完整 ICC 色彩管理。
 
@@ -70,7 +79,7 @@ Compositor 原版是基于 SwiftUI、AppKit、CoreGraphics / CoreImage / Metal �
 
 ## 暂未移植
 
-原版 Metal 管线未直接移植；Windows 已加入 WebGPU 合成。Camera Raw、内容识别修复、自动抠图、可编辑文字、钢笔路径、自由扭曲和完整高级图层效果等尚未实现。复杂组、模糊与 CPU 回退仍可能卡顿。详细容量限制和操作说明见 [Windows 使用说明](windows/README-WINDOWS.md)。
+原版 Metal 管线未直接移植；Windows 已加入 WebGPU 合成。Camera Raw、内容识别修复、自动抠图和完整高级图层效果仍待 0.6–0.7 阶段实现。复杂组、模糊与 CPU 回退仍可能卡顿。详细容量限制和操作说明见 [Windows 使用说明](windows/README-WINDOWS.md)。
 
 ## 从源码运行
 
@@ -92,11 +101,13 @@ npm.cmd run package
 ```
 
 - `npm test` 在真实 Electron renderer 中执行测试，结果和界面截图写入 `windows/output/`。
-- `npm run package` 生成 `windows/release/Compositor-Windows-0.4.0/` 和 `windows/Start-Compositor.cmd`。
+- `npm run package` 生成 `windows/release/Compositor-Windows-0.5.0/` 和 `windows/Start-Compositor.cmd`。
 - 打包器拒绝覆盖已有同名发布目录，重新打包前请先归档旧目录。
 - 二进制与依赖目录不进入 Git 源码历史，便携包通过 GitHub Releases 提供。
 
 ## 验证记录
+
+2026-10-30，0.5 源码版与便携版分别通过 **101 项检查（21 回归 + 14 交互 + 44 渲染/项目 + 22 高级编辑）**，失败 0 项。结果、图像质量样本及未验收项统一记录在 [0.5 验证记录](docs/windows/VALIDATION-0.5.md)。以下 0.4 数据作为历史记录保留。
 
 2026-10-27，0.4.0 源码版和便携 exe 均通过 **21 项回归检查 + 14 组真实交互测试 + 44 项渲染/项目测试**。交互测试覆盖实际鼠标框选、滚动后的坐标、图层拖放、浮动选区取消、右键、系统剪贴板、工具属性和保存重开。
 

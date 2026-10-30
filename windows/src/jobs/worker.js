@@ -3,12 +3,17 @@ import { initializeCanvas } from 'ag-psd';
 import { importPsd, exportPsd } from '../formats.js';
 import { composite, canvas } from '../engine.js';
 import { packDocument, unpackDocument } from './document-transfer.js';
+import {warpImage} from '../warp.js';
 initializeCanvas((w,h)=>new OffscreenCanvas(w,h));
 const MAX=512*1024*1024;
 const digest=async bytes=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)),b=>b.toString(16).padStart(2,'0')).join('');
 self.onmessage=async({data:{kind,payload}})=>{
   try{
-    if(kind==='psd-read'){
+    if(kind==='warp'){
+      const image=canvas(payload.image.width,payload.image.height);image.getContext('2d').drawImage(payload.image,0,0);payload.image.close();
+      const result=warpImage(image,payload.warp,value=>postMessage({progress:value})),bitmap=await createImageBitmap(result.image);
+      postMessage({result:{image:bitmap,bounds:result.bounds}},[bitmap]);
+    }else if(kind==='psd-read'){
       postMessage({progress:.1});const imported=importPsd(payload.bytes,payload.name);postMessage({progress:.65});
       const doc=await packDocument(imported.doc),preview=imported.preview?await packDocument(imported.preview):null;
       postMessage({result:{doc:doc.document,notes:imported.notes,preview:preview?.document||null}},[...doc.transfer,...(preview?.transfer||[])]);
